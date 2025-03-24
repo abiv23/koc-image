@@ -1,168 +1,143 @@
 'use client';
 
-import { useState, ChangeEvent } from 'react';
-import Image from 'next/image';
-import { Camera, Upload, X } from 'lucide-react';
+import Link from 'next/link';
+import { Camera, Upload, Users, Shield } from 'lucide-react';
 
-import Header from '@/components/Header'
-import Footer from '@/components/Footer'
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 
 export default function Home() {
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [previews, setPreviews] = useState<string[]>([]);
-  const [isDragging, setIsDragging] = useState(false);
-
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const filesArray = Array.from(e.target.files);
-      setSelectedFiles(prev => [...prev, ...filesArray]);
-      
-      const newPreviewUrls = filesArray.map(file => URL.createObjectURL(file));
-      setPreviews(prev => [...prev, ...newPreviewUrls]);
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    
-    if (e.dataTransfer.files) {
-      const filesArray = Array.from(e.dataTransfer.files);
-      const imageFiles = filesArray.filter(file => file.type.startsWith('image/'));
-      
-      setSelectedFiles(prev => [...prev, ...imageFiles]);
-      
-      const newPreviewUrls = imageFiles.map(file => URL.createObjectURL(file));
-      setPreviews(prev => [...prev, ...newPreviewUrls]);
-    }
-  };
-
-  const removeFile = (index: number) => {
-    const newFiles = [...selectedFiles];
-    const newPreviews = [...previews];
-    
-    // Release the object URL to avoid memory leaks
-    URL.revokeObjectURL(newPreviews[index]);
-    
-    newFiles.splice(index, 1);
-    newPreviews.splice(index, 1);
-    
-    setSelectedFiles(newFiles);
-    setPreviews(newPreviews);
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('Files to upload:', selectedFiles);
-    // Add your upload logic here
-  };
 
   return (
     <>
       <Header />
-        <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4">
-          <div className="w-full max-w-md mx-auto bg-white rounded-lg shadow-xl overflow-hidden">
-            {/* Header */}
-            <div className="bg-violet-600 flex flex-col items-center justify-center h-12 pt-2">
-              <div className="rounded-full flex items-center justify-center">
-                <Camera className="text-white" size={16} />
+        <main className="min-h-screen bg-gray-100">
+          {/* Hero Section */}
+          <section className="pt-20 pb-12 px-4">
+            <div className="max-w-6xl mx-auto text-center">
+              <div className="bg-violet-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Camera className="text-white" size={32} />
               </div>
-              <h1 className="text-lg font-medium text-white flex items-center justify-center">
-                  Photo Upload
-              </h1>
+              <h1 className="text-4xl font-bold text-gray-900 mb-4">Arvada KoC Photo Bank</h1>
+              <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
+                A simple way to upload, store, and resize images for Knights of Columbus Council activities and events.
+              </p>
+              <Link href="/upload" className="bg-violet-600 text-white px-6 py-3 rounded-md hover:bg-violet-700 transition-colors font-medium inline-flex items-center">
+                <Upload className="mr-2" size={20} />
+                Upload Photos
+              </Link>
             </div>
+          </section>
 
-            <form onSubmit={handleSubmit} className="p-5 flex flex-col items-center justify-center h-40"
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              onClick={() => document.getElementById('fileInput')?.click()}
-            >
-              {/* Upload Area */}
-              <div className="relative w-full flex flex-col items-center">
-                <div 
-                  className={`border-2 border-dashed rounded-lg p-6 mb-6 text-center cursor-pointer transition-colors w-full ${
-                    isDragging ? 'border-violet-400 bg-violet-50' : 'border-gray-300 hover:border-violet-300'
-                  }`}
-                >
-                  <input
-                    type="file"
-                    id="fileInput"
-                    accept="image/*"
-                    multiple
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
-                  
-                  <div className="text-center">
-                    <p className="text-sm text-gray-700 font-medium mb-1">
-                      Drag and drop your images here, or click to browse
+          {/* Features Section */}
+          <section className="py-12 px-4 bg-white">
+            <div className="max-w-6xl mx-auto">
+              <h2 className="text-2xl font-bold text-center text-gray-900 mb-8">
+                Simple Photo Management for Our Council
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-gray-50 p-6 rounded-lg shadow-sm">
+                  <div className="bg-violet-100 w-12 h-12 rounded-full flex items-center justify-center mb-4">
+                    <Upload className="text-violet-600" size={24} />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">Easy Uploading</h3>
+                  <p className="text-gray-600">
+                    Quickly upload photos from your events with our simple drag-and-drop interface.
+                  </p>
+                </div>
+                <div className="bg-gray-50 p-6 rounded-lg shadow-sm">
+                  <div className="bg-violet-100 w-12 h-12 rounded-full flex items-center justify-center mb-4">
+                    <Camera className="text-violet-600" size={24} />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">Automatic Resizing</h3>
+                  <p className="text-gray-600">
+                    Photos are automatically optimized and resized for sharing on our council website.
+                  </p>
+                </div>
+                <div className="bg-gray-50 p-6 rounded-lg shadow-sm">
+                  <div className="bg-violet-100 w-12 h-12 rounded-full flex items-center justify-center mb-4">
+                    <Users className="text-violet-600" size={24} />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">Council Access</h3>
+                  <p className="text-gray-600">
+                    All council members can easily access and share photos from our events and activities.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Knights of Columbus Principles Section */}
+          <section className="py-16 px-4">
+            <div className="max-w-6xl mx-auto">
+              <h2 className="text-2xl font-bold text-center text-gray-900 mb-2">
+                The Four Principles of the Knights of Columbus
+              </h2>
+              <p className="text-center text-gray-600 mb-10 max-w-3xl mx-auto">
+                Our council is guided by these four core principles that shape our service and fraternity.
+              </p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {/* Charity */}
+                <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                  <div className="bg-violet-600 h-2"></div>
+                  <div className="p-6">
+                    <div className="bg-violet-100 w-12 h-12 rounded-full flex items-center justify-center mb-4">
+                      <Shield className="text-violet-600" size={24} />
+                    </div>
+                    <h3 className="text-xl font-semibold mb-2">Charity</h3>
+                    <p className="text-gray-600">
+                      Our Catholic faith teaches us to &apos;Love thy neighbor as thyself.&apos; Knights recognize that our mission is to serve those in need.
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Unity */}
+                <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                  <div className="bg-violet-600 h-2"></div>
+                  <div className="p-6">
+                    <div className="bg-violet-100 w-12 h-12 rounded-full flex items-center justify-center mb-4">
+                      <Shield className="text-violet-600" size={24} />
+                    </div>
+                    <h3 className="text-xl font-semibold mb-2">Unity</h3>
+                    <p className="text-gray-600">
+                      None of us is as good as all of us. Together, we can accomplish far more than any of us could individually.
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Fraternity */}
+                <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                  <div className="bg-violet-600 h-2"></div>
+                  <div className="p-6">
+                    <div className="bg-violet-100 w-12 h-12 rounded-full flex items-center justify-center mb-4">
+                      <Shield className="text-violet-600" size={24} />
+                    </div>
+                    <h3 className="text-xl font-semibold mb-2">Fraternity</h3>
+                    <p className="text-gray-600">
+                      The Knights of Columbus was founded on the principles of protecting the livelihood of Catholic families. We continue this mission today.
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Patriotism */}
+                <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                  <div className="bg-violet-600 h-2"></div>
+                  <div className="p-6">
+                    <div className="bg-violet-100 w-12 h-12 rounded-full flex items-center justify-center mb-4">
+                      <Shield className="text-violet-600" size={24} />
+                    </div>
+                    <h3 className="text-xl font-semibold mb-2">Patriotism</h3>
+                    <p className="text-gray-600">
+                      Members of the Knights of Columbus are proud of their devotion to God and country, and believe in standing up for both.
                     </p>
                   </div>
                 </div>
               </div>
-
-              {/* Image Previews */}
-              {previews.length > 0 && (
-                <div className="mb-6 w-full text-center">
-                  <div className="flex items-center justify-center mb-3">
-                    <h2 className="text-sm font-medium text-gray-800 mr-2">
-                      Selected Images
-                    </h2>
-                    <span className="text-xs bg-violet-100 text-violet-700 py-1 px-2 rounded-full">
-                      {previews.length} {previews.length === 1 ? 'file' : 'files'}
-                    </span>
-                  </div>
-                  
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <div className="grid grid-cols-4 gap-2">
-                      {previews.map((preview, index) => (
-                        <div key={index} className="relative group">
-                          <div className="aspect-square overflow-hidden rounded-md shadow-sm bg-white">
-                            <Image
-                              src={preview}
-                              alt={`Preview ${index + 1}`}
-                              width={100}
-                              height={100}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation(); // Prevent form click
-                              removeFile(index);
-                            }}
-                            className="absolute -top-1 -right-1 bg-red-500 text-white p-1 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <X size={14} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </form>
-          </div>
-          <div className="w-max h-10 flex justify-center items-center mt-4">
-            <div className="bg-violet-100 w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-violet-200 transition-colors"
-                onClick={() => document.getElementById('fileInput')?.click()}>
-              <Upload className="text-violet-600" size={20} />
             </div>
-          </div>
-        </div>
-        <Footer />
-      </>
+          </section>
+        </main>
+      <Footer />
+    </>
   );
 }

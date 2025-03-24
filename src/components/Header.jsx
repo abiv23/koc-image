@@ -9,10 +9,12 @@ const Header = () => {
       <div className="max-w-6xl mx-auto flex justify-between items-center">
         <div className="flex items-center">
           {/* Replace with your actual logo */}
-          <div className="h-8 w-8 bg-violet-600 rounded-full flex items-center justify-center">
-            <Camera className="text-white" size={16} />
-          </div>
-          <span className="ml-2 font-medium text-gray-800">KoC PhotoShare</span>
+
+            <div className="h-8 w-8 bg-violet-600 rounded-full flex items-center justify-center">
+                <Link href="/"><Camera className="text-white" size={16} /></Link>
+            </div>
+            <Link href="/"><span className="ml-2 font-medium text-gray-800">KoC PhotoShare</span></Link>
+
         </div>
         
         <Link href="/login" className="flex items-center text-sm font-medium text-gray-700 hover:text-violet-600">
