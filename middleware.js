@@ -4,8 +4,8 @@ import { getToken } from 'next-auth/jwt';
 export async function middleware(request) {
   const path = request.nextUrl.pathname;
   
-  // Define public paths
-  const isPublicPath = path === '/login' || path === '/register';
+  // Define public paths - now including the homepage as public
+  const isPublicPath = path === '/' || path === '/login' || path === '/register';
   
   const token = await getToken({
     req: request,
@@ -13,7 +13,7 @@ export async function middleware(request) {
   });
   
   // Redirect logic
-  if (isPublicPath && token) {
+  if ((path === '/login' || path === '/register') && token) {
     return NextResponse.redirect(new URL('/', request.url));
   }
   
@@ -30,6 +30,10 @@ export const config = {
     '/login',
     '/register',
     '/upload',
-    // Add other protected routes here
+    '/photos',
+    '/photo/:path*',
+    '/account',
+    '/images',
+    // Add any other routes here as you create them
   ],
 };

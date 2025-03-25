@@ -2,14 +2,14 @@
 
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
-import Images from '@/components/Images'
+import Account from '@/components/Account'
 
 const Upload = () => {
 
   return (
     <>
         <Header />
-        <Images />
+        <Account />
         <Footer />
     </>
   );

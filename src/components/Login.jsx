@@ -33,7 +33,7 @@ export default function LoginComponent() {
           }
           
           // Redirect on success
-          router.push('/upload');
+          router.push('/images');
           router.refresh();
         } catch (error) {
           console.error('Login failed:', error);
