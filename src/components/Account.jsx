@@ -161,13 +161,9 @@ const Account = () => {
   
   if (loading) {
     return (
-      <>
-        <Header />
-        <main className="min-h-screen bg-gray-100 px-4 py-8 flex items-center justify-center">
-          <div className="animate-spin h-8 w-8 border-4 border-violet-500 border-t-transparent rounded-full"></div>
-        </main>
-        <Footer />
-      </>
+    <main className="min-h-screen bg-gray-100 px-4 py-8 flex items-center justify-center">
+        <div className="animate-spin h-8 w-8 border-4 border-violet-500 border-t-transparent rounded-full"></div>
+    </main>
     );
   }
   
