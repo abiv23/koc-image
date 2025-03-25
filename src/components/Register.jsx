@@ -1,13 +1,18 @@
+// src/components/Register.jsx
+
 'use client';
 
 import { useState } from 'react';
-import { Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { Eye, EyeOff, ArrowRight, Shield } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 const Register = () => {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    knightNumber: '',
     password: '',
     confirmPassword: ''
   });
@@ -15,6 +20,7 @@ const Register = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [knightNumberError, setKnightNumberError] = useState('');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -22,11 +28,24 @@ const Register = () => {
       ...prev,
       [name]: value
     }));
+
+    // Clear knight number error when user types
+    if (name === 'knightNumber') {
+      setKnightNumberError('');
+    }
+  };
+
+  // Validate Knight number format
+  const validateKnightNumber = (number) => {
+    // Knight numbers are usually 7 digits
+    const knightNumberRegex = /^\d{7}$/;
+    return knightNumberRegex.test(number);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setKnightNumberError('');
     
     // Basic validation
     if (formData.password !== formData.confirmPassword) {
@@ -38,39 +57,40 @@ const Register = () => {
       setError('Password must be at least 8 characters');
       return;
     }
+
+    // Validate Knight number
+    if (!formData.knightNumber.trim()) {
+      setKnightNumberError('Knight number is required');
+      return;
+    }
+
+    if (!validateKnightNumber(formData.knightNumber)) {
+      setKnightNumberError('Please enter a valid 7-digit Knight number');
+      return;
+    }
     
     setIsLoading(true);
     
     try {
-      // Here you would implement your NextAuth registration logic
-      // Example with a custom register endpoint:
-      // const response = await fetch('/api/auth/register', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     name: formData.name,
-      //     email: formData.email,
-      //     password: formData.password
-      //   })
-      // });
-      //
-      // const data = await response.json();
-      // if (!response.ok) throw new Error(data.message || 'Registration failed');
-      
-      console.log('Registration attempt with:', {
-        name: formData.name,
-        email: formData.email
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          knightNumber: formData.knightNumber
+        })
       });
       
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const data = await response.json();
       
-      // After successful registration, you can:
-      // 1. Automatically sign in the user
-      // 2. Redirect to login page
-      // 3. Show a success message
+      if (!response.ok) {
+        throw new Error(data.error || 'Registration failed');
+      }
       
-      // window.location.href = '/login?registered=true';
+      // Redirect to login page after successful registration
+      router.push('/login?registered=true');
     } catch (error) {
       console.error('Registration failed:', error);
       setError(error.message || 'Failed to create account. Please try again.');
@@ -86,7 +106,7 @@ const Register = () => {
           {/* Header */}
           <div className="bg-violet-600 py-4 px-6">
             <h2 className="text-xl font-medium text-white">Create Account</h2>
-            <p className="text-violet-200 text-sm mt-1">Join PhotoShare today</p>
+            <p className="text-violet-200 text-sm mt-1">Join Knights of Columbus PhotoShare</p>
           </div>
           
           {/* Form */}
@@ -130,6 +150,32 @@ const Register = () => {
                   placeholder="your@email.com"
                   required
                 />
+              </div>
+
+              {/* Knight Number Input */}
+              <div>
+                <label htmlFor="knightNumber" className="block text-sm font-medium text-gray-700 mb-1">
+                  <div className="flex items-center">
+                    <Shield className="mr-2" size={16} />
+                    Knight Membership Number
+                  </div>
+                </label>
+                <input
+                  id="knightNumber"
+                  name="knightNumber"
+                  type="text"
+                  value={formData.knightNumber}
+                  onChange={handleChange}
+                  className={`w-full px-3 py-2 border ${knightNumberError ? 'border-red-300' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent`}
+                  placeholder="7-digit number (e.g., 5522805)"
+                  required
+                />
+                {knightNumberError && (
+                  <p className="mt-1 text-xs text-red-500">{knightNumberError}</p>
+                )}
+                <p className="mt-1 text-xs text-gray-500">
+                  Your Knight number can be found on your membership card or in the Knights of Columbus app.
+                </p>
               </div>
               
               {/* Password Input */}

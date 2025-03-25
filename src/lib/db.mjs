@@ -25,7 +25,7 @@ function getPool() {
   return pool;
 }
 
-// Helper function to run SQL queries
+// Helper function to run SQL queries - moved before any other functions that use it
 async function query(text, params) {
   const client = await getPool().connect();
   try {
@@ -45,6 +45,7 @@ export async function initDb() {
         name TEXT NOT NULL,
         email TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
+        knight_number_hash TEXT UNIQUE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -120,6 +121,29 @@ export async function initDb() {
   }
 }
 
+export async function updateUsersTableWithKnightNumberHash() {
+  try {
+    // Check if knight_number_hash column exists
+    const checkColumnResult = await query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'users' AND column_name = 'knight_number_hash'
+    `);
+    
+    // If column doesn't exist, add it
+    if (checkColumnResult.rows.length === 0) {
+      await query(`
+        ALTER TABLE users 
+        ADD COLUMN knight_number_hash TEXT UNIQUE
+      `);
+      console.log('✅ Added knight_number_hash column to users table');
+    }
+  } catch (error) {
+    console.error('Error updating users table:', error);
+    throw error;
+  }
+}
+
 // Users
 export async function getUserByEmail(email) {
   const result = await query('SELECT * FROM users WHERE email = $1', [email]);
@@ -137,6 +161,69 @@ export async function createUser(name, email, hashedPassword) {
     [name, email, hashedPassword]
   );
   return result.rows[0].id;
+}
+
+export async function createUserWithKnightNumberHash(name, email, hashedPassword, knightNumberHash) {
+  const client = await getPool().connect();
+  
+  try {
+    // Start a transaction
+    await client.query('BEGIN');
+    
+    // Double-check if the knight number hash is already in use (within transaction)
+    const checkResult = await client.query(
+      'SELECT id FROM users WHERE knight_number_hash = $1 FOR UPDATE',
+      [knightNumberHash]
+    );
+    
+    if (checkResult.rows.length > 0) {
+      // Another user is already using this knight number
+      await client.query('ROLLBACK');
+      throw new Error('Knight number is already registered');
+    }
+    
+    // Create user with knight number hash
+    const result = await client.query(
+      'INSERT INTO users (name, email, password, knight_number_hash) VALUES ($1, $2, $3, $4) RETURNING id',
+      [name, email, hashedPassword, knightNumberHash]
+    );
+    
+    // Commit the transaction
+    await client.query('COMMIT');
+    
+    return result.rows[0].id;
+  } catch (error) {
+    // Rollback in case of error
+    await client.query('ROLLBACK');
+    console.error('Error creating user:', error);
+    throw error;
+  } finally {
+    // Release the client back to the pool
+    client.release();
+  }
+}
+
+// Function to check if a knight number hash is already used
+export async function isKnightNumberHashUsed(knightNumberHash) {
+  try {
+    // Log the hash we're checking for debugging
+    console.log(`Checking if knight number hash is used: ${knightNumberHash}`);
+    
+    const result = await query(
+      'SELECT id FROM users WHERE knight_number_hash = $1',
+      [knightNumberHash]
+    );
+    
+    const isUsed = result.rows.length > 0;
+    console.log(`Knight number hash used: ${isUsed}`);
+    
+    return isUsed;
+  } catch (error) {
+    console.error('Error checking knight number hash:', error);
+    // If there's an error, assume it's not used to prevent blocking registration
+    // but log the error for investigation
+    return false;
+  }
 }
 
 // Images

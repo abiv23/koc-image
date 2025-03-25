@@ -1,4 +1,6 @@
-import { initDb } from '../src/lib/db.mjs';
+// scripts/init-db.mjs
+
+import { initDb, updateUsersTableWithKnightNumberHash } from '../src/lib/db.mjs';
 import { mkdir } from 'fs/promises';
 import { join } from 'path';
 import { fileURLToPath } from 'url';
@@ -37,6 +39,9 @@ const require = createRequire(import.meta.url);
     console.log('🔄 Connecting to database...');
     // Initialize the database tables
     await initDb();
+    
+    // Update users table with knight_number_hash column if needed
+    await updateUsersTableWithKnightNumberHash();
     
     console.log('✅ Database initialization complete!');
     process.exit(0);
