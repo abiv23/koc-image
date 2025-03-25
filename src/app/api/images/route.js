@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "../auth/[...nextauth]/route";
-import { getDb, getImageTags } from "@/lib/db";
+import { authOptions } from "../auth/[...nextauth]/authOptions";
+import { getImages, getImageTags } from "@/lib/db";
 
 export async function GET(request) {
   try {
@@ -17,42 +17,8 @@ export async function GET(request) {
     const offset = parseInt(searchParams.get("offset") || "0");
     const tag = searchParams.get("tag");
     
-    // Get database connection
-    const db = await getDb();
-    
-    let images;
-    let total;
-    
-    if (tag) {
-      // Get images with a specific tag
-      images = await db.all(`
-        SELECT i.* FROM images i
-        JOIN image_tags it ON i.id = it.image_id
-        JOIN tags t ON it.tag_id = t.id
-        WHERE t.name = ?
-        ORDER BY i.created_at DESC
-        LIMIT ? OFFSET ?
-      `, [tag, limit, offset]);
-      
-      const totalResult = await db.get(`
-        SELECT COUNT(*) as count FROM images i
-        JOIN image_tags it ON i.id = it.image_id
-        JOIN tags t ON it.tag_id = t.id
-        WHERE t.name = ?
-      `, [tag]);
-      
-      total = totalResult.count;
-    } else {
-      // Get all images
-      images = await db.all(`
-        SELECT * FROM images
-        ORDER BY created_at DESC
-        LIMIT ? OFFSET ?
-      `, [limit, offset]);
-      
-      const totalResult = await db.get('SELECT COUNT(*) as count FROM images');
-      total = totalResult.count;
-    }
+    // Get images with pagination and tag filtering
+    const { images, total } = await getImages(limit, offset, tag);
     
     // Fetch tags for each image
     const imagesWithTags = await Promise.all(
@@ -60,6 +26,7 @@ export async function GET(request) {
         const tags = await getImageTags(image.id);
         return {
           ...image,
+          // Use local file path
           url: `/uploads/${image.filename}`,
           tags: tags.map(t => t.name)
         };

@@ -1,114 +1,47 @@
-// scripts/init-db.js
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
-import bcrypt from 'bcryptjs';
+import { initDb } from '../src/lib/db.mjs';
 import { mkdir } from 'fs/promises';
 import { join } from 'path';
-// import { fileURLToPath } from 'url';
-// import { dirname } from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import dotenv from 'dotenv';
+import { createRequire } from 'module';
 
-// Get the directory name using ESM pattern
-// const __filename = fileURLToPath(import.meta.url);
-// const __dirname = dirname(__filename);
+// Load environment variables from .env.local
+dotenv.config({ path: '.env.local' });
+
+// For __dirname equivalent in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Create a require function
+const require = createRequire(import.meta.url);
 
 (async () => {
-  // Create uploads directory if it doesn't exist
-  const uploadsDir = join(process.cwd(), 'public/uploads');
+  console.log('🔄 Initializing database...');
+  
   try {
-    await mkdir(uploadsDir, { recursive: true });
-    console.log('✅ Created uploads directory');
-  } catch (err) {
-    console.error('Error creating uploads directory:', err);
-  }
-
-  // Open database connection
-  const db = await open({
-    filename: './data.db',
-    driver: sqlite3.Database
-  });
-  
-  console.log('🔄 Creating database tables...');
-  
-  // Create users table
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      email TEXT UNIQUE NOT NULL,
-      password TEXT NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-  
-  // Create images table
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS images (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      filename TEXT NOT NULL,
-      original_filename TEXT NOT NULL,
-      size INTEGER NOT NULL,
-      width INTEGER,
-      height INTEGER,
-      mime_type TEXT NOT NULL,
-      description TEXT,
-      user_id INTEGER NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users (id)
-    )
-  `);
-  
-  // Create tags table
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS tags (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT UNIQUE NOT NULL
-    )
-  `);
-  
-  // Create image_tags join table
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS image_tags (
-      image_id INTEGER NOT NULL,
-      tag_id INTEGER NOT NULL,
-      PRIMARY KEY (image_id, tag_id),
-      FOREIGN KEY (image_id) REFERENCES images (id) ON DELETE CASCADE,
-      FOREIGN KEY (tag_id) REFERENCES tags (id) ON DELETE CASCADE
-    )
-  `);
-  
-  console.log('✅ Database tables created');
-  
-  // Check if test user exists
-  const testUser = await db.get('SELECT * FROM users WHERE email = ?', ['test@example.com']);
-  
-  if (!testUser) {
-    // Create test user
-    const hashedPassword = await bcrypt.hash('password', 10);
-    await db.run(
-      'INSERT INTO users (name, email, password) VALUES (?, ?, ?)',
-      ['Test User', 'test@example.com', hashedPassword]
-    );
-    console.log('✅ Created test user: test@example.com (password: password)');
-  } else {
-    console.log('ℹ️ Test user already exists');
-  }
-  
-  // Create some sample tags
-  const sampleTags = ['event', 'meeting', 'charity', 'social', 'group', 'fundraiser'];
-  
-  for (const tag of sampleTags) {
+    // Create uploads directory if it doesn't exist (for local development)
+    const uploadsDir = join(dirname(__dirname), 'public/uploads');
     try {
-      await db.run('INSERT INTO tags (name) VALUES (?)', [tag]);
-    } catch (error) {
-      console.log(error)
+      await mkdir(uploadsDir, { recursive: true });
+      console.log('✅ Created uploads directory for local development at:', uploadsDir);
+    } catch (err) {
+      console.error('Error creating uploads directory:', err);
     }
+    
+    // Check if PostgreSQL connection string is available
+    if (!process.env.POSTGRES_URL && !process.env.DATABASE_URL) {
+      throw new Error("Neither POSTGRES_URL nor DATABASE_URL environment variable is set. Please add one to your .env.local file.");
+    }
+    
+    console.log('🔄 Connecting to database...');
+    // Initialize the database tables
+    await initDb();
+    
+    console.log('✅ Database initialization complete!');
+    process.exit(0);
+  } catch (err) {
+    console.error('Error initializing database:', err);
+    process.exit(1);
   }
-  
-  console.log('✅ Sample tags created');
-  console.log('✅ Database initialization complete!');
-  
-  await db.close();
-})().catch(err => {
-  console.error('Error initializing database:', err);
-  process.exit(1);
-});
+})();

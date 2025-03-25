@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "../../auth/[...nextauth]/route";
+import { authOptions } from "../../auth/[...nextauth]/authOptions";
 import { saveImage, addTagToImage } from "@/lib/db";
+import { v4 as uuidv4 } from "uuid";
+import sharp from "sharp";
 import fs from "fs";
 import path from "path";
-import { v4 as uuidv4 } from "uuid"; // You'll need to install this: npm install uuid
 import { mkdir } from "fs/promises";
-import sharp from "sharp"; // For image processing: npm install sharp
 
-// First make sure the uploads directory exists
-const createUploadsDir = async () => {
+// Utility to ensure uploads directory exists for local development
+const ensureUploadsDir = async () => {
   const uploadsDir = path.join(process.cwd(), "public/uploads");
   try {
     await mkdir(uploadsDir, { recursive: true });
@@ -45,14 +45,17 @@ export async function POST(request) {
     const imageInfo = await sharp(buffer).metadata();
     
     // Create a unique filename
-    const uploadsDir = await createUploadsDir();
     const originalFilename = file.name;
-    const fileExtension = path.extname(originalFilename);
-    const filename = `${uuidv4()}${fileExtension}`;
-    const filePath = path.join(uploadsDir, filename);
+    const fileExtension = originalFilename.split('.').pop();
+    const filename = `${uuidv4()}.${fileExtension}`;
     
-    // Save the file
+    // Save file to local uploads directory
+    const uploadsDir = await ensureUploadsDir();
+    const filePath = path.join(uploadsDir, filename);
     fs.writeFileSync(filePath, buffer);
+    
+    // In local development, use a local URL
+    const url = `/uploads/${filename}`;
     
     // Save file metadata to database
     const imageData = {
@@ -82,7 +85,7 @@ export async function POST(request) {
       image: {
         id: imageId,
         ...imageData,
-        url: `/uploads/${filename}`,
+        url,
         tags: imageTags
       }
     });

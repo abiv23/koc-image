@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "../../auth/[...nextauth]/route";
-import { getImageById, getImageTags } from "@/lib/db";
+import { authOptions } from "../../auth/[...nextauth]/authOptions";
+import { getImageById, getImageTags, deleteImage } from "@/lib/db";
+import fs from 'fs';
+import path from 'path';
 
 export async function GET(request, { params }) {
   try {
@@ -26,7 +28,7 @@ export async function GET(request, { params }) {
     // Return the image with its tags
     return NextResponse.json({
       ...image,
-      url: `/uploads/${image.filename}`,
+      url: `/uploads/${image.filename}`, // Use local path
       tags: tags.map(t => t.name)
     });
     
@@ -46,7 +48,6 @@ export async function DELETE(request, { params }) {
     }
 
     const id = params.id;
-    const db = await getDb();
     
     // Get the image to check ownership and get filename
     const image = await getImageById(id);
@@ -60,17 +61,19 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     
-    // Delete the image file
-    const filePath = path.join(process.cwd(), "public/uploads", image.filename);
+    // Delete the image file from local filesystem
     try {
-      fs.unlinkSync(filePath);
+      const filePath = path.join(process.cwd(), 'public/uploads', image.filename);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
     } catch (err) {
-      console.error("Error deleting file:", err);
+      console.error("Error deleting local file:", err);
       // Continue even if file delete fails
     }
     
-    // Delete the image from the database (will cascade to image_tags join table)
-    await db.run('DELETE FROM images WHERE id = ?', [id]);
+    // Delete the image from the database
+    await deleteImage(id);
     
     return NextResponse.json({ success: true });
     
