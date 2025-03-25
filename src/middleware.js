@@ -25,15 +25,19 @@ export async function middleware(request) {
 }
 
 export const config = {
-  matcher: [
-    '/',
-    '/login',
-    '/register',
-    '/upload',
-    '/photos',
-    '/photo/:path*',
-    '/account',
-    '/images',
-    // Add any other routes here as you create them
-  ],
+    matcher: [
+        '/',
+        '/login',
+        '/register',
+        '/upload',
+        '/photos',
+        '/photo/:path*',
+        '/account',
+        '/images',
+    ]
 };
+
+// export function middleware(request) {
+//   console.log("MIDDLEWARE RUNNING", request.nextUrl.pathname);
+//   return Response.redirect(new URL('/login', request.url));
+// }
