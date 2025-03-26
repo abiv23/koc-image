@@ -1,14 +1,16 @@
 import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-// Initialize S3 client
-const s3Client = new S3Client({
-  region: process.env.AWS_REGION,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
-  }
-});
+// Initialize S3 client - using a function to ensure fresh credentials
+const getS3Client = () => {
+  return new S3Client({
+    region: process.env.AWS_REGION,
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+    }
+  });
+};
 
 /**
  * Uploads a file to S3
@@ -28,6 +30,7 @@ export async function uploadToS3(buffer, filename, contentType) {
 
   try {
     // Upload to S3
+    const s3Client = getS3Client();
     await s3Client.send(new PutObjectCommand(params));
     
     // Return the URL for the uploaded file
@@ -50,6 +53,7 @@ export async function deleteFromS3(filename) {
   };
 
   try {
+    const s3Client = getS3Client();
     await s3Client.send(new DeleteObjectCommand(params));
     return true;
   } catch (error) {
@@ -71,6 +75,7 @@ export async function getSignedS3Url(filename, expiresIn = 3600) {
   };
 
   try {
+    const s3Client = getS3Client();
     const command = new GetObjectCommand(params);
     const signedUrl = await getSignedUrl(s3Client, command, { expiresIn });
     return signedUrl;
@@ -81,9 +86,10 @@ export async function getSignedS3Url(filename, expiresIn = 3600) {
 }
 
 /**
- * Builds the S3 URL for a file
+ * Builds the S3 URL for a file (direct, not signed)
  * @param {string} filename - The filename in S3
  * @returns {string} The full S3 URL
+ * @deprecated Use getSignedS3Url instead for secure access
  */
 export function getS3Url(filename) {
   return `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${filename}`;

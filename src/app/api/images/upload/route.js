@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../../auth/[...nextauth]/authOptions";
 import { saveImage, addTagToImage } from "@/lib/db";
-import { uploadToS3, isS3Configured } from "@/lib/sThreeStorage";
+import { uploadToS3, isS3Configured, getSignedS3Url } from "@/lib/sThreeStorage";
 import { v4 as uuidv4 } from "uuid";
 import sharp from "sharp";
 import fs from "fs";
@@ -27,6 +27,15 @@ const saveFileLocally = async (buffer, filename) => {
   fs.writeFileSync(filePath, buffer);
   return `/uploads/${filename}`;
 };
+
+// Function to get the URL for an image - now returning signed URLs for S3
+async function getImageUrl(filename) {
+  if (isS3Configured()) {
+    return await getSignedS3Url(filename, 3600); // 1 hour expiry
+  } else {
+    return `/uploads/${filename}`; // Local path for development
+  }
+}
 
 export async function POST(request) {
   try {
@@ -59,15 +68,15 @@ export async function POST(request) {
     const filename = `${uuidv4()}${fileExtension}`;
     
     // Save file to storage (S3 in production, local in development)
-    let url;
+    let s3Url;
     if (isS3Configured()) {
       // Upload to S3
-      url = await uploadToS3(buffer, filename, file.type);
-      console.log(`File uploaded to S3: ${url}`);
+      s3Url = await uploadToS3(buffer, filename, file.type);
+      console.log(`File uploaded to S3: ${s3Url}`);
     } else {
       // Save locally for development
-      url = await saveFileLocally(buffer, filename);
-      console.log(`File saved locally: ${url}`);
+      await saveFileLocally(buffer, filename);
+      console.log(`File saved locally: /uploads/${filename}`);
     }
     
     // Save file metadata to database
@@ -92,6 +101,9 @@ export async function POST(request) {
         imageTags.push(savedTag);
       }
     }
+    
+    // Get the URL with proper signing for S3
+    const url = await getImageUrl(filename);
     
     return NextResponse.json({
       success: true,

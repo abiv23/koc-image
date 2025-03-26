@@ -2,18 +2,19 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../../auth/[...nextauth]/authOptions";
 import { getImageById, getImageTags, deleteImage } from "@/lib/db";
-import { getS3Url, deleteFromS3, isS3Configured } from "@/lib/sThreeStorage";
+import { getS3Url, deleteFromS3, isS3Configured, getSignedS3Url } from "@/lib/sThreeStorage";
 import fs from 'fs';
 import path from 'path';
 
 /**
  * Get the URL for an image based on the environment
  * @param {string} filename - The image filename
- * @returns {string} - The URL to access the image
+ * @returns {Promise<string>} - The URL to access the image
  */
-function getImageUrl(filename) {
+async function getImageUrl(filename) {
   if (isS3Configured()) {
-    return getS3Url(filename);
+    // Use signed URL instead of direct S3 URL
+    return await getSignedS3Url(filename, 3600); // 1 hour expiry
   } else {
     return `/uploads/${filename}`; // Local path for development
   }
@@ -39,10 +40,10 @@ export async function GET(request, { params }) {
     // Get tags for the image
     const tags = await getImageTags(id);
     
-    // Return the image with its tags
+    // Return the image with its tags and a signed URL
     return NextResponse.json({
       ...image,
-      url: getImageUrl(image.filename),
+      url: await getImageUrl(image.filename), // Now properly awaited
       tags: tags.map(t => t.name)
     });
     
