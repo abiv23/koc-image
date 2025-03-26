@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../../auth/[...nextauth]/authOptions";
 import { saveImage, addTagToImage } from "@/lib/db";
+import { uploadToS3, isS3Configured } from "@/lib/sThreeStorage";
 import { v4 as uuidv4 } from "uuid";
 import sharp from "sharp";
 import fs from "fs";
@@ -17,6 +18,14 @@ const ensureUploadsDir = async () => {
     console.error("Error creating uploads directory:", error);
   }
   return uploadsDir;
+};
+
+// Function to save file locally for development
+const saveFileLocally = async (buffer, filename) => {
+  const uploadsDir = await ensureUploadsDir();
+  const filePath = path.join(uploadsDir, filename);
+  fs.writeFileSync(filePath, buffer);
+  return `/uploads/${filename}`;
 };
 
 export async function POST(request) {
@@ -46,16 +55,20 @@ export async function POST(request) {
     
     // Create a unique filename
     const originalFilename = file.name;
-    const fileExtension = originalFilename.split('.').pop();
-    const filename = `${uuidv4()}.${fileExtension}`;
+    const fileExtension = path.extname(originalFilename).toLowerCase();
+    const filename = `${uuidv4()}${fileExtension}`;
     
-    // Save file to local uploads directory
-    const uploadsDir = await ensureUploadsDir();
-    const filePath = path.join(uploadsDir, filename);
-    fs.writeFileSync(filePath, buffer);
-    
-    // In local development, use a local URL
-    const url = `/uploads/${filename}`;
+    // Save file to storage (S3 in production, local in development)
+    let url;
+    if (isS3Configured()) {
+      // Upload to S3
+      url = await uploadToS3(buffer, filename, file.type);
+      console.log(`File uploaded to S3: ${url}`);
+    } else {
+      // Save locally for development
+      url = await saveFileLocally(buffer, filename);
+      console.log(`File saved locally: ${url}`);
+    }
     
     // Save file metadata to database
     const imageData = {

@@ -2,6 +2,20 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../auth/[...nextauth]/authOptions";
 import { getImages, getImageTags } from "@/lib/db";
+import { getS3Url, isS3Configured } from "@/lib/sThreeStorage";
+
+/**
+ * Get the URL for an image based on the environment
+ * @param {string} filename - The image filename
+ * @returns {string} - The URL to access the image
+ */
+function getImageUrl(filename) {
+  if (isS3Configured()) {
+    return getS3Url(filename);
+  } else {
+    return `/uploads/${filename}`; // Local path for development
+  }
+}
 
 export async function GET(request) {
   try {
@@ -26,8 +40,7 @@ export async function GET(request) {
         const tags = await getImageTags(image.id);
         return {
           ...image,
-          // Use local file path
-          url: `/uploads/${image.filename}`,
+          url: getImageUrl(image.filename),
           tags: tags.map(t => t.name)
         };
       })

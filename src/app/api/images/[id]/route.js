@@ -2,8 +2,22 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../../auth/[...nextauth]/authOptions";
 import { getImageById, getImageTags, deleteImage } from "@/lib/db";
+import { getS3Url, deleteFromS3, isS3Configured } from "@/lib/sThreeStorage";
 import fs from 'fs';
 import path from 'path';
+
+/**
+ * Get the URL for an image based on the environment
+ * @param {string} filename - The image filename
+ * @returns {string} - The URL to access the image
+ */
+function getImageUrl(filename) {
+  if (isS3Configured()) {
+    return getS3Url(filename);
+  } else {
+    return `/uploads/${filename}`; // Local path for development
+  }
+}
 
 export async function GET(request, { params }) {
   try {
@@ -28,7 +42,7 @@ export async function GET(request, { params }) {
     // Return the image with its tags
     return NextResponse.json({
       ...image,
-      url: `/uploads/${image.filename}`, // Use local path
+      url: getImageUrl(image.filename),
       tags: tags.map(t => t.name)
     });
     
@@ -61,14 +75,22 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     
-    // Delete the image file from local filesystem
+    // Delete the image file from the appropriate storage
     try {
-      const filePath = path.join(process.cwd(), 'public/uploads', image.filename);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
+      if (isS3Configured()) {
+        // Delete from S3
+        await deleteFromS3(image.filename);
+        console.log(`Deleted image from S3: ${image.filename}`);
+      } else {
+        // Delete from local storage
+        const filePath = path.join(process.cwd(), 'public/uploads', image.filename);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+          console.log(`Deleted local image: ${filePath}`);
+        }
       }
     } catch (err) {
-      console.error("Error deleting local file:", err);
+      console.error("Error deleting file:", err);
       // Continue even if file delete fails
     }
     
