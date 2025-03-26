@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "init-db": "node scripts/init-db.mjs"
+    "init-db": "node scripts/init-db.mjs",
+    "clean-db": "node scripts/cleanup-db.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.775.0",

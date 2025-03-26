@@ -136,6 +136,12 @@ export function getS3Url(filename) {
  * @returns {boolean} True if S3 is properly configured
  */
 export function isS3Configured() {
+  // Force true in production environment
+  if (process.env.NODE_ENV === 'production') {
+    console.log("Production environment detected, forcing S3 configuration to true");
+    return true;
+  }
+  
   const hasBucket = !!process.env.AWS_BUCKET_NAME;
   const hasRegion = !!process.env.AWS_REGION;
   const hasAccessKey = !!process.env.AWS_ACCESS_KEY_ID;

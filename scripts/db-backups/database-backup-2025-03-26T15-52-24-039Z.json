@@ -1,0 +1,24 @@
+{
+  "metadata": {
+    "timestamp": "2025-03-26T15:52:24.231Z",
+    "tables": {
+      "users": 1,
+      "images": 0,
+      "tags": 0,
+      "imageTags": 0
+    }
+  },
+  "users": [
+    {
+      "id": 1,
+      "name": "Andrew Biviano",
+      "email": "abiv23@gmail.com",
+      "password": "$2b$10$3i/u3oUOK9tl8It8BSz0MubhaQAYDkjjapqIOcMSWDOzrlEk.KCva",
+      "created_at": "2025-03-26T21:38:37.139Z",
+      "knight_number_hash": "145615ebb619b7a3d18a5fea293597e5ea0d00f9b0b0dcadad04a409997259ac"
+    }
+  ],
+  "images": [],
+  "tags": [],
+  "imageTags": []
+}
