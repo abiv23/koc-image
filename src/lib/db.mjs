@@ -228,8 +228,18 @@ export async function isKnightNumberHashUsed(knightNumberHash) {
 
 // Images
 export async function saveImage(imageData) {
-  const { filename, originalFilename, size, width, height, mimeType, description, userId } = imageData;
+  const { 
+    filename, 
+    originalFilename, 
+    size, 
+    width, 
+    height, 
+    mimeType, 
+    description, 
+    userId   // This was previously mismatched with the parameter name in API
+  } = imageData;
   
+  // Fix the parameter name mismatch (user_id vs userId)
   const result = await query(
     `INSERT INTO images 
      (filename, original_filename, size, width, height, mime_type, description, user_id)

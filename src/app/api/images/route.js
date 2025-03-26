@@ -1,9 +1,9 @@
-// Updated src/app/api/images/route.js with await for getImageUrl
+// src/app/api/images/route.js
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../auth/[...nextauth]/authOptions";
 import { getImages, getImageTags } from "@/lib/db";
-import { getS3Url, isS3Configured, getSignedS3Url } from "@/lib/sThreeStorage";
+import { isS3Configured, getSignedS3Url } from "@/lib/sThreeStorage";
 
 /**
  * Get the URL for an image based on the environment
@@ -12,10 +12,17 @@ import { getS3Url, isS3Configured, getSignedS3Url } from "@/lib/sThreeStorage";
  */
 async function getImageUrl(filename) {
   if (isS3Configured()) {
-    // Use signed URL instead of direct S3 URL
-    return await getSignedS3Url(filename, 3600); // 1 hour expiry
+    try {
+      // Use signed URL for S3 images with 1 hour expiry
+      return await getSignedS3Url(filename, 3600);
+    } catch (error) {
+      console.error(`Error getting signed URL for ${filename}:`, error);
+      // Fallback to direct URL if signing fails
+      return `/uploads/${filename}`;
+    }
   } else {
-    return `/uploads/${filename}`; // Local path for development
+    // Local path for development
+    return `/uploads/${filename}`;
   }
 }
 
@@ -40,9 +47,18 @@ export async function GET(request) {
     const imagesWithTags = await Promise.all(
       images.map(async (image) => {
         const tags = await getImageTags(image.id);
+        
+        let imageUrl;
+        try {
+          imageUrl = await getImageUrl(image.filename);
+        } catch (error) {
+          console.error(`Failed to get URL for image ${image.id}:`, error);
+          imageUrl = `/uploads/${image.filename}`; // Fallback
+        }
+        
         return {
           ...image,
-          url: await getImageUrl(image.filename), // Now properly awaited
+          url: imageUrl,
           tags: tags.map(t => t.name)
         };
       })
@@ -60,6 +76,9 @@ export async function GET(request) {
     
   } catch (error) {
     console.error("Error fetching images:", error);
-    return NextResponse.json({ error: "Failed to fetch images" }, { status: 500 });
+    return NextResponse.json({ 
+      error: "Failed to fetch images", 
+      details: error.message 
+    }, { status: 500 });
   }
 }

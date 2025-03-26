@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
@@ -31,45 +31,45 @@ const Images = () => {
   }, [status, router]);
   
   // Fetch images from API
-  useEffect(() => {
-    const fetchImages = async () => {
-      if (status !== "authenticated") return;
-      
-      setLoading(true);
-      try {
-        const tagQuery = filterTag ? `&tag=${encodeURIComponent(filterTag)}` : '';
-        const response = await fetch(`/api/images?limit=${itemsPerPage}&offset=${page * itemsPerPage}${tagQuery}`);
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch images');
-        }
-        
-        const data = await response.json();
-        
-        // If first page, replace all photos. Otherwise append
-        if (page === 0) {
-          setPhotos(data.images);
-        } else {
-          setPhotos(prevPhotos => [...prevPhotos, ...data.images]);
-        }
-        
-        setHasMore(data.pagination.hasMore);
-        
-        // Build a unique list of all tags for filtering
-        const allTags = data.images.flatMap(image => image.tags);
-        const uniqueTags = [...new Set(allTags)].filter(Boolean);
-        setAvailableTags(uniqueTags);
-        
-      } catch (error) {
-        console.error('Error fetching images:', error);
-        setError('Failed to load images. Please try again later.');
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchImages = useCallback(async () => {
+    if (status !== "authenticated") return;
     
-    fetchImages();
+    setLoading(true);
+    try {
+      const tagQuery = filterTag ? `&tag=${encodeURIComponent(filterTag)}` : '';
+      const response = await fetch(`/api/images?limit=${itemsPerPage}&offset=${page * itemsPerPage}${tagQuery}`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch images: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      // If first page, replace all photos. Otherwise append
+      if (page === 0) {
+        setPhotos(data.images || []);
+      } else {
+        setPhotos(prevPhotos => [...prevPhotos, ...(data.images || [])]);
+      }
+      
+      setHasMore(data.pagination?.hasMore || false);
+      
+      // Build a unique list of all tags for filtering
+      const allTags = (data.images || []).flatMap(image => image.tags || []);
+      const uniqueTags = [...new Set(allTags)].filter(Boolean);
+      setAvailableTags(uniqueTags);
+      
+    } catch (error) {
+      console.error('Error fetching images:', error);
+      setError(`Failed to load images: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
   }, [status, filterTag, page]);
+  
+  useEffect(() => {
+    fetchImages();
+  }, [fetchImages]);
   
   // Handle image load error (404s)
   const handleImageError = (photoId) => {
@@ -80,8 +80,8 @@ const Images = () => {
   // Filter images client-side based on search term
   const filteredPhotos = photos.filter(photo => 
     photo.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    photo.original_filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    photo.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+    photo.original_filename?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (photo.tags || []).some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
   );
   
   // Load more photos
@@ -96,6 +96,12 @@ const Images = () => {
     setFilterTag(prev => prev === tag ? '' : tag);
     setPage(0); // Reset to first page when changing filters
     setFilterOpen(false);
+  };
+  
+  // Retry loading if there was an error
+  const retryFetch = () => {
+    setError('');
+    fetchImages();
   };
   
   return (
@@ -183,8 +189,14 @@ const Images = () => {
               <div className="flex-shrink-0">
                 <AlertTriangle className="text-red-500" size={24} />
               </div>
-              <div className="ml-3">
+              <div className="ml-3 flex-grow">
                 <p className="text-red-700">{error}</p>
+                <button 
+                  onClick={retryFetch}
+                  className="mt-2 text-sm font-medium text-red-700 hover:text-red-900"
+                >
+                  Try again
+                </button>
               </div>
             </div>
           </div>
@@ -234,12 +246,12 @@ const Images = () => {
                         {new Date(photo.created_at).toLocaleDateString()}
                       </p>
                       <div className="flex flex-wrap gap-1 mt-2">
-                        {photo.tags.slice(0, 3).map((tag, idx) => (
+                        {(photo.tags || []).slice(0, 3).map((tag, idx) => (
                           <span key={idx} className="px-2 py-0.5 bg-violet-50 text-violet-700 rounded-full text-xs">
                             {tag}
                           </span>
                         ))}
-                        {photo.tags.length > 3 && (
+                        {(photo.tags || []).length > 3 && (
                           <span className="px-2 py-0.5 bg-gray-50 text-gray-600 rounded-full text-xs">
                             +{photo.tags.length - 3} more
                           </span>
@@ -277,6 +289,6 @@ const Images = () => {
       </div>
     </main>
   );
-};
+}
 
 export default Images;
