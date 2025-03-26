@@ -1,5 +1,3 @@
-// scripts/init-db.mjs
-
 import { initDb, updateUsersTableWithKnightNumberHash } from '../src/lib/db.mjs';
 import { mkdir } from 'fs/promises';
 import { join } from 'path';
