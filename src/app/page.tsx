@@ -13,16 +13,23 @@ export default function Home() {
       <Header />
         <main className="min-h-screen bg-gray-100">
           {/* Hero Section */}
-          <section className="pt-20 pb-12 px-4">
-            <div className="max-w-6xl mx-auto text-center">
+          <section className="pt-20 pb-12 px-4 bg-[url('/images/koc-img.webp')] bg-cover bg-center bg-no-repeat relative min-h-[50vh]">
+            <div className="absolute inset-0 bg-black/50"></div>
+            
+            <div className="max-w-6xl mx-auto text-center relative z-10">
               <div className="bg-violet-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Camera className="text-white" size={32} />
               </div>
-              <h1 className="text-4xl font-bold text-gray-900 mb-4">Arvada KoC Photo Bank</h1>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
+              <h1 className="text-4xl font-bold text-white mb-4 drop-shadow-lg">
+                Arvada KoC Photo Bank
+              </h1>
+              <p className="text-xl text-white max-w-3xl mx-auto mb-8 drop-shadow-md">
                 A simple way to upload, store, and resize images for Knights of Columbus Council activities and events.
               </p>
-              <Link href="/upload" className="bg-violet-600 text-white px-6 py-3 rounded-md hover:bg-violet-700 transition-colors font-medium inline-flex items-center">
+              <Link
+                href="/upload"
+                className="bg-violet-600 text-white px-6 py-3 rounded-md hover:bg-violet-700 transition-colors font-medium inline-flex items-center drop-shadow-lg"
+              >
                 <Upload className="mr-2" size={20} />
                 Upload Photos
               </Link>
