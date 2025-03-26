@@ -69,6 +69,90 @@ A custom-built photo management application for Knights of Columbus council acti
 
 6. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
+## Database Management
+
+### Backing Up and Resetting the Database
+
+The application includes scripts to manage the database, which can be useful for development and maintenance.
+
+#### Database Backup and Cleanup
+
+To reset the database (removing all data while preserving the structure):
+
+1. Run the backup and cleanup script:
+   ```bash
+   node scripts/cleanup-db.mjs
+   ```
+
+This script:
+- First creates a backup of the existing database in `scripts/db-backups/`
+- Backup files are stored as JSON with timestamp-based filenames
+- Removes all records from all tables
+- Resets sequence IDs to start from 1
+- Preserves the database structure
+
+After cleanup, reinitialize the database:
+```bash
+npm run init-db
+```
+
+#### Restoring from Backup
+
+To restore data from a backup:
+
+1. Create a restore script (not included by default)
+2. Reference a specific backup file from the `scripts/db-backups/` directory
+3. Run the restore script
+
+Example restoration script:
+```javascript
+// scripts/restore-db.mjs
+import fs from 'fs/promises';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import pkg from 'pg';
+const { Pool } = pkg;
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config({ path: '.env.local' });
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+async function restoreFromBackup(backupFileName) {
+  const backupPath = path.join(__dirname, 'db-backups', backupFileName);
+  const backupData = JSON.parse(await fs.readFile(backupPath, 'utf8'));
+  
+  // Implement restoration logic here
+  console.log(`Restoring from backup: ${backupPath}`);
+}
+
+// Usage: node scripts/restore-db.mjs database-backup-2023-07-15T12-34-56-789Z.json
+const backupFileName = process.argv[2];
+if (!backupFileName) {
+  console.error('Please provide a backup filename');
+  process.exit(1);
+}
+
+restoreFromBackup(backupFileName);
+```
+
+### Knight Number Management
+
+For users to register, their Knight number must be in the pre-approved list. To manage Knight numbers:
+
+1. Add valid Knight numbers in `src/lib/knightValidation.js`:
+   ```javascript
+   const validKnightNumbers = new Set([
+     '5522805',
+     '1234567', // Add more numbers here
+   ]);
+   ```
+
+2. When a Knight registers, their number is automatically marked as used
+3. The validation ensures each Knight number can only be used for one account
+
 ## Secure Image Handling with S3
 
 This application implements secure image storage and access using AWS S3 and signed URLs:
@@ -86,9 +170,9 @@ For S3 storage, ensure your bucket has the appropriate CORS settings:
 [
   {
     "AllowedHeaders": ["*"],
-    "AllowedMethods": ["GET"],
+    "AllowedMethods": ["GET", "PUT", "POST", "DELETE", "HEAD"],
     "AllowedOrigins": ["https://your-production-domain.com", "http://localhost:3000"],
-    "ExposeHeaders": [],
+    "ExposeHeaders": ["ETag"],
     "MaxAgeSeconds": 3000
   }
 ]
