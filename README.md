@@ -9,6 +9,7 @@ A custom-built photo management application for Knights of Columbus council acti
 - **Image Optimization**: Automatic resizing and processing of uploaded images
 - **Tag Organization**: Categorize photos with tags for easy discovery
 - **Responsive Design**: Works on desktop, tablet, and mobile devices
+- **Secure Image Access**: S3 signed URLs ensure only authenticated users can access photos
 
 ## Technology Stack
 
@@ -16,7 +17,7 @@ A custom-built photo management application for Knights of Columbus council acti
 - **Backend**: Next.js API Routes
 - **Database**: Neon PostgreSQL (serverless)
 - **Authentication**: NextAuth.js with custom KoC membership validation
-- **Image Storage**: Local storage (development), AWS S3 (production)
+- **Image Storage**: Local storage (development), AWS S3 with signed URLs (production)
 - **Styling**: TailwindCSS with custom components
 
 ## Getting Started
@@ -68,6 +69,36 @@ A custom-built photo management application for Knights of Columbus council acti
 
 6. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
+## Secure Image Handling with S3
+
+This application implements secure image storage and access using AWS S3 and signed URLs:
+
+### How It Works
+1. **Upload Process**: Images are uploaded to S3 with private ACLs
+2. **Database Storage**: Image metadata and locations are stored in PostgreSQL
+3. **Secure Access**: Images are served via time-limited presigned URLs
+4. **Expiration**: By default, signed URLs expire after 1 hour
+
+### Configuration
+For S3 storage, ensure your bucket has the appropriate CORS settings:
+
+```json
+[
+  {
+    "AllowedHeaders": ["*"],
+    "AllowedMethods": ["GET"],
+    "AllowedOrigins": ["https://your-production-domain.com", "http://localhost:3000"],
+    "ExposeHeaders": [],
+    "MaxAgeSeconds": 3000
+  }
+]
+```
+
+S3 permissions for your IAM user should include:
+- `s3:PutObject`
+- `s3:GetObject`
+- `s3:DeleteObject`
+
 ## Knight Membership Verification
 
 The application implements a secure membership verification system:
@@ -99,15 +130,16 @@ const validKnightNumbers = new Set([
    - Deploy
 
 3. Set up AWS S3 bucket for production image storage:
-   - Create an S3 bucket in your AWS account
+   - Create an S3 bucket in your AWS account with private objects
    - Set appropriate CORS and access policies
    - Add the AWS environment variables to your Vercel project
 
 ### Production Considerations
 
-- The application uses local file storage in development but requires S3 or another cloud storage solution for production
+- The application uses local file storage in development but requires S3 for production
 - Ensure your database connection strings and API keys are properly set as environment variables
 - Set up appropriate CORS settings for your S3 bucket
+- Consider using a CDN like CloudFront for better performance
 
 ## Project Structure
 
@@ -120,6 +152,9 @@ const validKnightNumbers = new Set([
 │   │   └── ...       # Page routes
 │   ├── components/   # React components
 │   ├── lib/          # Utility functions and database helpers
+│   │   ├── db.mjs              # Database operations
+│   │   ├── knightValidation.js # Knights of Columbus membership validation
+│   │   └── sThreeStorage.mjs   # S3 storage with signed URLs
 │   └── styles/       # Global styles
 ├── .env.local        # Environment variables (not in repo)
 └── ...               # Config files
