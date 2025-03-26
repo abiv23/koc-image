@@ -1,0 +1,49 @@
+{
+  "metadata": {
+    "timestamp": "2025-03-26T16:02:13.239Z",
+    "tables": {
+      "users": 1,
+      "images": 0,
+      "tags": 6,
+      "imageTags": 0
+    }
+  },
+  "users": [
+    {
+      "id": 1,
+      "name": "Test User",
+      "email": "test@example.com",
+      "password": "$2b$10$Aiyy33RsI6DGX9p9VY5Lqeo5.e.9yPQn8fD0Ffy9I2NVg1t.zUAoe",
+      "created_at": "2025-03-26T21:53:07.875Z",
+      "knight_number_hash": null
+    }
+  ],
+  "images": [],
+  "tags": [
+    {
+      "id": 1,
+      "name": "event"
+    },
+    {
+      "id": 2,
+      "name": "meeting"
+    },
+    {
+      "id": 3,
+      "name": "charity"
+    },
+    {
+      "id": 4,
+      "name": "social"
+    },
+    {
+      "id": 5,
+      "name": "group"
+    },
+    {
+      "id": 6,
+      "name": "fundraiser"
+    }
+  ],
+  "imageTags": []
+}

@@ -21,14 +21,8 @@ const getS3Client = () => {
  * @returns {Promise<string>} The URL of the uploaded file
  */
 export async function uploadToS3(buffer, filename, contentType) {
-  console.log(`Starting S3 upload process for file: ${filename}, type: ${contentType}`);
-  console.log(`Using bucket: ${process.env.AWS_BUCKET_NAME}, region: ${process.env.AWS_REGION}`);
-  
-  // Validate AWS configuration
-  if (!process.env.AWS_BUCKET_NAME) {
-    console.error("AWS_BUCKET_NAME is not defined");
-    throw new Error("S3 bucket name is not configured");
-  }
+  console.log(`Starting S3 upload: ${filename}, type: ${contentType}, size: ${buffer.length} bytes`);
+  console.log(`AWS Config - Bucket: ${process.env.AWS_BUCKET_NAME}, Region: ${process.env.AWS_REGION}`);
   
   // Set parameters for S3 upload
   const params = {
@@ -39,33 +33,35 @@ export async function uploadToS3(buffer, filename, contentType) {
   };
 
   try {
-    // Upload to S3
-    console.log("Initializing S3 client...");
-    const s3Client = getS3Client();
+    // Create a new S3 client for each operation
+    const s3Client = new S3Client({
+      region: process.env.AWS_REGION,
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+      }
+    });
     
-    console.log("Preparing S3 upload command...");
+    console.log("S3 client created, sending upload command");
     const command = new PutObjectCommand(params);
-    
-    console.log("Sending file to S3...");
-    const result = await s3Client.send(command);
-    console.log("S3 upload successful:", result);
+    await s3Client.send(command);
+    console.log("S3 upload command completed successfully");
     
     // Return the URL for the uploaded file
-    const fileUrl = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${filename}`;
-    console.log(`Generated S3 URL: ${fileUrl}`);
-    return fileUrl;
+    return `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${filename}`;
   } catch (error) {
-    // Extract detailed error information
+    console.error("S3 upload error:", error);
+    // Extract AWS-specific error details
     const errorDetails = {
       message: error.message,
-      code: error.code,
+      code: error.Code || error.code,
       requestId: error.$metadata?.requestId,
+      region: error.$metadata?.region || process.env.AWS_REGION,
       statusCode: error.$metadata?.httpStatusCode
     };
+    console.error("S3 error details:", JSON.stringify(errorDetails));
     
-    console.error("Error uploading to S3:", error);
-    console.error("Error details:", JSON.stringify(errorDetails));
-    throw new Error(`Failed to upload file to S3: ${error.message}`);
+    throw new Error(`S3 upload failed: ${error.message}`);
   }
 }
 

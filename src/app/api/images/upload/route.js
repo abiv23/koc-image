@@ -1,13 +1,16 @@
 // src/app/api/images/upload/route.js
 export async function POST(request) {
+  try {
+    // Check authentication
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    console.log("Authentication successful");
+
+    // Get form data
     try {
-      // Check authentication
-      const session = await getServerSession(authOptions);
-      if (!session) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
-  
-      // Get form data
       const formData = await request.formData();
       const file = formData.get("file");
       const description = formData.get("description") || "";
@@ -16,80 +19,67 @@ export async function POST(request) {
       if (!file) {
         return NextResponse.json({ error: "No file provided" }, { status: 400 });
       }
-  
+
+      console.log("File received:", file.name, "Size:", file.size);
+      
       // Get file details
+      console.log("Reading file buffer");
       const bytes = await file.arrayBuffer();
       const buffer = Buffer.from(bytes);
       
-      // Process the image with sharp to get dimensions
-      const imageInfo = await sharp(buffer).metadata();
+      // Test direct S3 upload before doing any other processing
+      console.log("Testing direct S3 upload");
+      const testFilename = `test-${Date.now()}.txt`;
+      const testContent = "Hello World";
+      const testBuffer = Buffer.from(testContent);
       
-      // Create a unique filename
-      const originalFilename = file.name;
-      const fileExtension = path.extname(originalFilename).toLowerCase();
-      const filename = `${uuidv4()}${fileExtension}`;
-      
-      // Force S3 in production environment
-      let url;
-      if (process.env.NODE_ENV === 'production' || isS3Configured()) {
-        // Always use S3 in production
-        console.log("Uploading to S3...");
-        url = await uploadToS3(buffer, filename, file.type);
-        console.log(`File uploaded to S3: ${url}`);
-      } else {
-        // Only use local storage in development
-        console.log("Saving locally for development...");
-        const uploadsDir = path.join(process.cwd(), "public/uploads");
-        await mkdir(uploadsDir, { recursive: true });
-        const filePath = path.join(uploadsDir, filename);
-        fs.writeFileSync(filePath, buffer);
-        url = `/uploads/${filename}`;
-        console.log(`File saved locally: ${url}`);
+      try {
+        const testUrl = await uploadToS3(testBuffer, testFilename, 'text/plain');
+        console.log("Test S3 upload successful:", testUrl);
+      } catch (testError) {
+        console.error("Test S3 upload failed:", testError);
+        return NextResponse.json({ 
+          error: "S3 test upload failed", 
+          details: testError.message 
+        }, { status: 500 });
       }
       
-      // Save file metadata to database
-      const imageData = {
-        filename,
-        originalFilename,
-        size: file.size,
-        width: imageInfo.width,
-        height: imageInfo.height,
-        mimeType: file.type,
-        description,
-        userId: parseInt(session.user.id)
-      };
-      
-      const imageId = await saveImage(imageData);
-      
-      // Add tags to the image
-      const imageTags = [];
-      for (const tag of tags) {
-        if (tag) {
-          const savedTag = await addTagToImage(imageId, tag);
-          imageTags.push(savedTag);
-        }
+      // If we got here, S3 is working correctly
+      // Now attempt to upload the real file
+      try {
+        const originalFilename = file.name;
+        const fileExtension = path.extname(originalFilename).toLowerCase();
+        const filename = `${uuidv4()}${fileExtension}`;
+        
+        console.log("Uploading actual file to S3...");
+        const url = await uploadToS3(buffer, filename, file.type);
+        console.log("Actual file uploaded to S3:", url);
+        
+        // Return success without database operations for now
+        return NextResponse.json({
+          success: true,
+          message: "File uploaded to S3 successfully",
+          url: url
+        });
+      } catch (uploadError) {
+        console.error("Real file upload failed:", uploadError);
+        return NextResponse.json({
+          error: "Failed to upload file to S3",
+          details: uploadError.message
+        }, { status: 500 });
       }
-      
-      // Get the URL with proper signing for S3
-      const finalUrl = process.env.NODE_ENV === 'production' || isS3Configured() 
-        ? await getSignedS3Url(filename) 
-        : url;
-      
-      return NextResponse.json({
-        success: true,
-        image: {
-          id: imageId,
-          ...imageData,
-          url: finalUrl,
-          tags: imageTags
-        }
-      });
-      
-    } catch (error) {
-      console.error("Error uploading image:", error);
+    } catch (formError) {
+      console.error("Form processing error:", formError);
       return NextResponse.json({ 
-        error: "Failed to upload image", 
-        details: error.message 
-      }, { status: 500 });
+        error: "Failed to process form data", 
+        details: formError.message 
+      }, { status: 400 });
     }
+  } catch (error) {
+    console.error("Unhandled error:", error);
+    return NextResponse.json({ 
+      error: "Unhandled server error", 
+      details: error.message 
+    }, { status: 500 });
   }
+}
