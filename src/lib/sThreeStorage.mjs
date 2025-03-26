@@ -1,5 +1,6 @@
 import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { v4 as uuidv4 } from 'uuid';
 
 // Initialize S3 client - using a function to ensure fresh credentials
 const getS3Client = () => {
@@ -16,11 +17,20 @@ const getS3Client = () => {
 /**
  * Uploads a file to S3
  * @param {Buffer} buffer - The file buffer
- * @param {string} filename - The filename to use in S3
+ * @param {string} originalName - The original filename
  * @param {string} contentType - The MIME type of the file
  * @returns {Promise<string>} The URL of the uploaded file
  */
-export async function uploadToS3(buffer, filename, contentType) {
+export async function uploadToS3(buffer, originalName, contentType) {
+  // Validate input
+  if (!buffer) {
+    throw new Error('No file buffer provided');
+  }
+
+  // Generate a unique filename
+  const originalExtension = originalName.split('.').pop();
+  const filename = `${uuidv4()}.${originalExtension}`;
+
   console.log(`Starting S3 upload: ${filename}, type: ${contentType}, size: ${buffer.length} bytes`);
   console.log(`AWS Config - Bucket: ${process.env.AWS_BUCKET_NAME}, Region: ${process.env.AWS_REGION}`);
   
@@ -48,7 +58,9 @@ export async function uploadToS3(buffer, filename, contentType) {
     console.log("S3 upload command completed successfully");
     
     // Return the URL for the uploaded file
-    return `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${filename}`;
+    const s3Url = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${filename}`;
+    console.log("Generated S3 URL:", s3Url);
+    return s3Url;
   } catch (error) {
     console.error("S3 upload error:", error);
     // Extract AWS-specific error details
