@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Camera, User, Upload, Image as ImageIcon, Settings, LogOut, ChevronDown, Shield } from 'lucide-react';
 import { useSession, signOut } from 'next-auth/react';
 
@@ -11,6 +11,7 @@ const Header = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
   const pathname = usePathname();
+  const router = useRouter();
 
   const isLoggedIn = status === 'authenticated';
   const isAdmin = session?.user?.isAdmin === true;
@@ -29,8 +30,14 @@ const Header = () => {
     };
   }, []);
 
-  const handleLogout = async () => {
-    await signOut({ redirect: true, callbackUrl: '/' });
+  const handleLogout = (e) => {
+    e.preventDefault(); // Prevent default behavior
+    console.log("Logout clicked");
+    
+    // Use window.location for a hard redirect after signout
+    signOut({ redirect: false }).then(() => {
+      window.location.href = '/';
+    });
   };
 
   // Function to determine if a link is active
@@ -116,7 +123,7 @@ const Header = () => {
             
             {dropdownOpen && (
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10">
-                {/* Account link now appears in dropdown for all screen sizes */}
+                {/* Account link */}
                 <Link href="/account" className="block px-4 py-2 text-sm text-gray-700 hover:bg-violet-50 flex items-center">
                   <Settings className="mr-2" size={16} />
                   Account Settings
@@ -130,7 +137,7 @@ const Header = () => {
                   </Link>
                 )}
                 
-                {/* Show mobile nav links in dropdown for small screens */}
+                {/* Mobile nav links */}
                 <div className="md:hidden">
                   <Link href="/upload" className="block px-4 py-2 text-sm text-gray-700 hover:bg-violet-50 flex items-center">
                     <Upload className="mr-2" size={16} />
@@ -145,14 +152,18 @@ const Header = () => {
                     Slideshow
                   </Link>
                 </div>
+                
                 <hr className="my-1 border-gray-200" />
-                <button 
+                
+                {/* Logout button - Fixed version */}
+                <a 
+                  href="#" 
                   onClick={handleLogout}
                   className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-violet-50 flex items-center"
                 >
                   <LogOut className="mr-2" size={16} />
                   Logout
-                </button>
+                </a>
               </div>
             )}
           </div>
