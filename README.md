@@ -4,7 +4,8 @@ A custom-built photo management application for Knights of Columbus council acti
 
 ## Features
 
-- **Secure Authentication**: Login and registration with Knights of Columbus membership verification
+- **Secure Authentication**: Login and registration with approved email validation
+- **Admin Portal**: Manage approved emails for registration 
 - **Photo Management**: Upload, browse, and organize council event photos
 - **Image Optimization**: Automatic resizing and processing of uploaded images
 - **Tag Organization**: Categorize photos with tags for easy discovery
@@ -16,7 +17,7 @@ A custom-built photo management application for Knights of Columbus council acti
 - **Frontend**: React, Next.js 14, TailwindCSS 4
 - **Backend**: Next.js API Routes
 - **Database**: Neon PostgreSQL (serverless)
-- **Authentication**: NextAuth.js with custom KoC membership validation
+- **Authentication**: NextAuth.js with custom email validation
 - **Image Storage**: Local storage (development), AWS S3 with signed URLs (production)
 - **Styling**: TailwindCSS with custom components
 
@@ -138,20 +139,29 @@ if (!backupFileName) {
 restoreFromBackup(backupFileName);
 ```
 
-### Knight Number Management
+## Admin Functionality
 
-For users to register, their Knight number must be in the pre-approved list. To manage Knight numbers:
+This application includes an admin panel for managing approved emails that are allowed to register for an account.
 
-1. Add valid Knight numbers in `src/lib/knightValidation.js`:
-   ```javascript
-   const validKnightNumbers = new Set([
-     '5522805',
-     '1234567', // Add more numbers here
-   ]);
-   ```
+### Admin Users
 
-2. When a Knight registers, their number is automatically marked as used
-3. The validation ensures each Knight number can only be used for one account
+- Admin users can access the admin panel at `/admin/approved-emails`
+- By default, `abiv23@gmail.com` is set as an admin
+- You can make other users admins by updating the database directly
+
+### Approved Email Management
+
+The admin panel allows administrators to:
+- Add new approved email addresses
+- View all currently approved emails
+- Search for specific emails
+- Remove emails from the approved list
+
+### Email-Based Registration
+
+- Only users with emails in the approved list can register for an account
+- When a user registers, their email is marked as "used" in the approved list
+- This prevents multiple accounts being created with the same approved email
 
 ## Secure Image Handling with S3
 
@@ -182,24 +192,6 @@ S3 permissions for your IAM user should include:
 - `s3:PutObject`
 - `s3:GetObject`
 - `s3:DeleteObject`
-
-## Knight Membership Verification
-
-The application implements a secure membership verification system:
-
-- Validates Knight membership numbers during registration
-- Does not store actual membership numbers in the database
-- Securely hashes and stores identifiers to prevent duplicate registrations
-- Allows only one account per membership number
-
-To add or update valid Knight numbers for registration, edit the `src/lib/knightValidation.js` file:
-
-```javascript
-const validKnightNumbers = new Set([
-  '5522805', // Your knight number
-  '1234567', // Add more numbers here
-]);
-```
 
 ## Deployment
 
@@ -232,12 +224,13 @@ const validKnightNumbers = new Set([
 ├── scripts/          # Database initialization scripts
 ├── src/
 │   ├── app/          # Next.js app router pages
+│   │   ├── admin/    # Admin pages and routes
 │   │   ├── api/      # API routes
 │   │   └── ...       # Page routes
 │   ├── components/   # React components
 │   ├── lib/          # Utility functions and database helpers
 │   │   ├── db.mjs              # Database operations
-│   │   ├── knightValidation.js # Knights of Columbus membership validation
+│   │   ├── emailValidation.mjs # Email validation for registration
 │   │   └── sThreeStorage.mjs   # S3 storage with signed URLs
 │   └── styles/       # Global styles
 ├── .env.local        # Environment variables (not in repo)
@@ -246,9 +239,9 @@ const validKnightNumbers = new Set([
 
 ## Authentication Flow
 
-1. User registers with email, password, and Knight number
-2. Application validates Knight number against approved list
-3. Upon validation, account is created (without storing Knight number)
+1. User registers with email and password
+2. Application validates email against approved list
+3. Upon validation, account is created
 4. User can log in with email and password
 5. All image uploads and actions require authentication
 
