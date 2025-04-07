@@ -1,7 +1,7 @@
 import pkg from 'pg';
 const { Pool } = pkg;
 import bcrypt from 'bcryptjs';
-import { hashEmail } from './emailValidation.js';
+import { hashEmail } from './emailValidation.mjs';
 
 // Create a PostgreSQL connection pool
 let pool;
@@ -39,15 +39,15 @@ async function query(text, params) {
 
 export async function initDb() {
   try {
-    // Create users table with email_hash instead of knight_number_hash
+    // Create users table
     await query(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         name TEXT NOT NULL,
         email TEXT UNIQUE NOT NULL,
-        email_hash TEXT UNIQUE,
         password TEXT NOT NULL,
         knight_number_hash TEXT UNIQUE,
+        is_admin BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);

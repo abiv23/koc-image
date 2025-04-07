@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Camera, User, Upload, Image as ImageIcon, Settings, LogOut, ChevronDown } from 'lucide-react';
+import { Camera, User, Upload, Image as ImageIcon, Settings, LogOut, ChevronDown, ShieldCheck } from 'lucide-react';
 import { useSession, signOut } from 'next-auth/react';
 
 const Header = () => {
@@ -13,6 +13,9 @@ const Header = () => {
   const pathname = usePathname();
 
   const isLoggedIn = status === 'authenticated';
+  
+  // Function to check if the current user is an admin
+  const isAdmin = session?.user?.isAdmin === true;
 
   // Handle clicking outside to close dropdown
   useEffect(() => {
@@ -105,6 +108,14 @@ const Header = () => {
                   <Settings className="mr-2" size={16} />
                   Account Settings
                 </Link>
+                
+                {/* Admin-only link */}
+                {isAdmin && (
+                  <Link href="/admin/approved-emails" className="block px-4 py-2 text-sm text-gray-700 hover:bg-violet-50 flex items-center">
+                    <ShieldCheck className="mr-2" size={16} />
+                    Manage Approved Emails
+                  </Link>
+                )}
                 
                 {/* Show mobile nav links in dropdown for small screens */}
                 <div className="md:hidden">
