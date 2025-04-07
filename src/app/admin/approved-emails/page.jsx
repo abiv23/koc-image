@@ -1,4 +1,3 @@
-// src/app/admin/approved-emails/page.jsx
 'use client';
 
 import { useSession } from 'next-auth/react';
