@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { ArrowLeft, Download, Save, Camera, Trash, Maximize, Minimize, X, AlertTriangle, Check } from 'lucide-react';
+import { ArrowLeft, Download, Save, Camera, Trash, Maximize, Minimize, X, AlertTriangle, Check, Play } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
@@ -355,6 +355,18 @@ const PhotoDetail = ({ params }) => {
                       >
                         <Download className="mr-2" size={18} />
                         Download original
+                      </button>
+                      <button 
+                        onClick={() => {
+                          // Start slideshow from this image
+                          sessionStorage.setItem('slideshowIds', JSON.stringify([Number(photoId)]));
+                          sessionStorage.setItem('slideshowStartIndex', '0');
+                          router.push('/slideshow?selected=true');
+                        }}
+                        className="flex items-center px-4 py-2 bg-violet-500 text-white border border-violet-500 rounded-md hover:bg-violet-600"
+                      >
+                        <Play className="mr-2" size={18} />
+                        Start slideshow
                       </button>
                       <button 
                         onClick={handleDelete}

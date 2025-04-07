@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { Camera, Upload as UploadIcon, X, Tag, FileText, Check } from 'lucide-react';
+import { Camera, Upload as UploadIcon, X, Tag, FileText, Check, AlertCircle, Loader } from 'lucide-react';
 
 export default function UploadComponent() {
     const { data: session, status } = useSession();
@@ -19,6 +19,15 @@ export default function UploadComponent() {
     const [currentTag, setCurrentTag] = useState('');
     const [uploadSuccess, setUploadSuccess] = useState(false);
     const [error, setError] = useState('');
+    
+    // Bulk upload state
+    const [uploadResults, setUploadResults] = useState([]);
+    const [currentFileIndex, setCurrentFileIndex] = useState(0);
+    const [failedUploads, setFailedUploads] = useState([]);
+    const [useSharedDescriptionTags, setUseSharedDescriptionTags] = useState(true);
+    
+    // Individual file metadata
+    const [fileMetadata, setFileMetadata] = useState({});
 
     useEffect(() => {
         // Redirect if not authenticated
@@ -30,11 +39,35 @@ export default function UploadComponent() {
     const handleFileChange = (e) => {
         if (e.target.files) {
             const filesArray = Array.from(e.target.files);
-            setSelectedFiles(prev => [...prev, ...filesArray]);
-            
-            const newPreviewUrls = filesArray.map(file => URL.createObjectURL(file));
-            setPreviews(prev => [...prev, ...newPreviewUrls]);
+            addNewFiles(filesArray);
         }
+    };
+    
+    const addNewFiles = (filesArray) => {
+        // Filter to only image files
+        const imageFiles = filesArray.filter(file => file.type.startsWith('image/'));
+        
+        // Update selectedFiles state
+        setSelectedFiles(prev => [...prev, ...imageFiles]);
+        
+        // Create preview URLs
+        const newPreviews = imageFiles.map(file => URL.createObjectURL(file));
+        setPreviews(prev => [...prev, ...newPreviews]);
+        
+        // Initialize metadata for each new file
+        const newMetadata = {};
+        imageFiles.forEach((file, index) => {
+            const fileId = `file-${Date.now()}-${index}`;
+            newMetadata[fileId] = {
+                id: fileId,
+                file: file,
+                description: '',
+                tags: '',
+                useShared: true
+            };
+        });
+        
+        setFileMetadata(prev => ({...prev, ...newMetadata}));
     };
 
     const handleDragOver = (e) => {
@@ -53,12 +86,7 @@ export default function UploadComponent() {
         
         if (e.dataTransfer.files) {
             const filesArray = Array.from(e.dataTransfer.files);
-            const imageFiles = filesArray.filter(file => file.type.startsWith('image/'));
-            
-            setSelectedFiles(prev => [...prev, ...imageFiles]);
-            
-            const newPreviewUrls = imageFiles.map(file => URL.createObjectURL(file));
-            setPreviews(prev => [...prev, ...newPreviewUrls]);
+            addNewFiles(filesArray);
         }
     };
 
@@ -69,11 +97,20 @@ export default function UploadComponent() {
         // Release the object URL to avoid memory leaks
         URL.revokeObjectURL(newPreviews[index]);
         
+        // Remove the file and its preview
         newFiles.splice(index, 1);
         newPreviews.splice(index, 1);
         
         setSelectedFiles(newFiles);
         setPreviews(newPreviews);
+        
+        // Also clean up metadata
+        const fileIds = Object.keys(fileMetadata);
+        if (fileIds[index]) {
+            const newMetadata = {...fileMetadata};
+            delete newMetadata[fileIds[index]];
+            setFileMetadata(newMetadata);
+        }
     };
 
     // Handle tag input
@@ -99,6 +136,28 @@ export default function UploadComponent() {
         const updatedTags = tagList.filter(tag => tag.toLowerCase() !== tagToRemove.toLowerCase()).join(', ');
         setTags(updatedTags);
     };
+    
+    // Update file metadata
+    const updateFileMetadata = (fileId, field, value) => {
+        setFileMetadata(prev => ({
+            ...prev,
+            [fileId]: {
+                ...prev[fileId],
+                [field]: value
+            }
+        }));
+    };
+    
+    // Toggle whether a file uses shared description/tags
+    const toggleUseShared = (fileId) => {
+        setFileMetadata(prev => ({
+            ...prev,
+            [fileId]: {
+                ...prev[fileId],
+                useShared: !prev[fileId].useShared
+            }
+        }));
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -111,54 +170,145 @@ export default function UploadComponent() {
         
         setIsUploading(true);
         setUploadProgress(0);
+        setUploadResults([]);
+        setFailedUploads([]);
+        setCurrentFileIndex(0);
         
         try {
             const totalFiles = selectedFiles.length;
             const uploadedFiles = [];
+            const failed = [];
             
-            // Upload each file with a delay to show progress
+            // Upload each file sequentially
             for (let i = 0; i < totalFiles; i++) {
+                setCurrentFileIndex(i);
+                
                 const file = selectedFiles[i];
+                const fileId = Object.keys(fileMetadata).find(key => fileMetadata[key].file === file);
+                const currentMetadata = fileMetadata[fileId] || {};
+                
+                // Determine which description and tags to use
+                const fileDescription = currentMetadata.useShared || useSharedDescriptionTags 
+                    ? description 
+                    : currentMetadata.description || '';
+                    
+                const fileTags = currentMetadata.useShared || useSharedDescriptionTags
+                    ? tags
+                    : currentMetadata.tags || '';
                 
                 const formData = new FormData();
                 formData.append('file', file);
-                formData.append('description', description);
-                formData.append('tags', tags);
+                formData.append('description', fileDescription);
+                formData.append('tags', fileTags);
                 
-                const response = await fetch('/api/images/upload', {
-                    method: 'POST',
-                    body: formData,
-                });
-                
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || errorData.details || 'Upload failed');
+                try {
+                    const response = await fetch('/api/images/upload', {
+                        method: 'POST',
+                        body: formData,
+                    });
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || errorData.details || 'Upload failed');
+                    }
+                    
+                    const result = await response.json();
+                    uploadedFiles.push(result.imageId);
+                    
+                    // Add to successful uploads
+                    setUploadResults(prev => [...prev, {
+                        file: file.name,
+                        success: true,
+                        imageId: result.imageId
+                    }]);
+                } catch (error) {
+                    console.error(`Error uploading ${file.name}:`, error);
+                    
+                    // Add to failed uploads
+                    failed.push({
+                        file: file.name,
+                        error: error.message || 'Upload failed'
+                    });
+                    
+                    setUploadResults(prev => [...prev, {
+                        file: file.name,
+                        success: false,
+                        error: error.message || 'Upload failed'
+                    }]);
+                    
+                    setFailedUploads(prev => [...prev, {
+                        file: file.name,
+                        error: error.message || 'Upload failed'
+                    }]);
                 }
-                
-                const result = await response.json();
-                uploadedFiles.push(result.imageId);
                 
                 // Update progress
                 setUploadProgress(Math.round(((i + 1) / totalFiles) * 100));
             }
             
-            // Reset state and show success message
-            setUploadSuccess(true);
-            setSelectedFiles([]);
-            setPreviews([]);
-            setDescription('');
-            setTags('');
-            
-            // Redirect to gallery after a delay
-            setTimeout(() => {
-                router.push('/images');
-            }, 2000);
+            // Show success message if at least some files were uploaded
+            if (uploadedFiles.length > 0) {
+                setUploadSuccess(true);
+                
+                // Only reset state if all uploads were successful
+                if (failed.length === 0) {
+                    // Reset form state
+                    setSelectedFiles([]);
+                    setPreviews([]);
+                    setDescription('');
+                    setTags('');
+                    setFileMetadata({});
+                    
+                    // Redirect to gallery after a delay
+                    setTimeout(() => {
+                        router.push('/images');
+                    }, 2000);
+                }
+            } else {
+                setError('All uploads failed. Please try again.');
+            }
             
         } catch (error) {
             console.error('Upload error:', error);
             setError(`Upload failed: ${error.message}`);
         } finally {
             setIsUploading(false);
+        }
+    };
+    
+    // Retry failed uploads
+    const retryFailedUploads = () => {
+        // Filter out failed uploads from selectedFiles
+        const failedFileNames = failedUploads.map(f => f.file);
+        const failedFiles = selectedFiles.filter(file => failedFileNames.includes(file.name));
+        
+        if (failedFiles.length > 0) {
+            // Reset upload state
+            setUploadResults([]);
+            setFailedUploads([]);
+            
+            // Keep only the failed files
+            setSelectedFiles(failedFiles);
+            
+            // Update previews to match
+            const newPreviews = failedFiles.map(file => {
+                // Find existing preview URL for this file if possible
+                const index = selectedFiles.findIndex(f => f.name === file.name);
+                return index >= 0 && index < previews.length ? previews[index] : URL.createObjectURL(file);
+            });
+            
+            setPreviews(newPreviews);
+            
+            // Clean up metadata to match
+            const newMetadata = {};
+            Object.keys(fileMetadata).forEach(key => {
+                const meta = fileMetadata[key];
+                if (failedFileNames.includes(meta.file.name)) {
+                    newMetadata[key] = meta;
+                }
+            });
+            
+            setFileMetadata(newMetadata);
         }
     };
 
@@ -196,9 +346,16 @@ export default function UploadComponent() {
                         <div className="p-4 bg-green-50 border-l-4 border-green-500">
                             <div className="flex">
                                 <Check className="text-green-500 mr-3" size={20} />
-                                <p className="text-green-700">
-                                    Upload successful! Redirecting to gallery...
-                                </p>
+                                <div>
+                                    <p className="text-green-700">
+                                        Upload successful! {failedUploads.length === 0 ? 'Redirecting to gallery...' : ''}
+                                    </p>
+                                    {failedUploads.length > 0 && (
+                                        <p className="text-green-600 text-sm mt-1">
+                                            {uploadResults.filter(r => r.success).length} of {uploadResults.length} files uploaded successfully.
+                                        </p>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     )}
@@ -231,47 +388,32 @@ export default function UploadComponent() {
                             <p className="text-gray-500 text-sm">
                                 Supports JPG, PNG and GIF files
                             </p>
+                            <p className="text-violet-600 text-sm mt-2 font-medium">
+                                Bulk upload supported - select multiple files at once!
+                            </p>
                         </div>
 
-                        {/* Image Previews */}
-                        {previews.length > 0 && (
-                            <div className="mb-6">
+                        {/* Shared Description and Tags for all photos */}
+                        {selectedFiles.length > 1 && (
+                            <div className="mb-6 p-4 bg-violet-50 rounded-lg border border-violet-100">
                                 <div className="flex items-center justify-between mb-3">
-                                    <h2 className="text-sm font-medium text-gray-800">
-                                        Selected Images
-                                    </h2>
-                                    <span className="text-xs bg-violet-100 text-violet-700 py-1 px-2 rounded-full">
-                                        {previews.length} {previews.length === 1 ? 'file' : 'files'}
-                                    </span>
-                                </div>
-                                
-                                <div className="bg-gray-50 rounded-lg p-3">
-                                    <div className="grid grid-cols-4 gap-2">
-                                        {previews.map((preview, index) => (
-                                            <div key={index} className="relative group">
-                                                <div className="aspect-square overflow-hidden rounded-md shadow-sm bg-white">
-                                                    <Image
-                                                        src={preview}
-                                                        alt={`Preview ${index + 1}`}
-                                                        width={100}
-                                                        height={100}
-                                                        className="w-full h-full object-cover"
-                                                    />
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation(); // Prevent form click
-                                                        removeFile(index);
-                                                    }}
-                                                    className="absolute -top-1 -right-1 bg-red-500 text-white p-1 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
-                                                >
-                                                    <X size={14} />
-                                                </button>
-                                            </div>
-                                        ))}
+                                    <h3 className="font-medium text-violet-800">Shared Information</h3>
+                                    <div className="flex items-center">
+                                        <input
+                                            type="checkbox"
+                                            id="use-shared"
+                                            checked={useSharedDescriptionTags}
+                                            onChange={() => setUseSharedDescriptionTags(!useSharedDescriptionTags)}
+                                            className="h-4 w-4 text-violet-600 focus:ring-violet-500 border-gray-300 rounded"
+                                        />
+                                        <label htmlFor="use-shared" className="ml-2 text-sm text-violet-800">
+                                            Apply to all photos
+                                        </label>
                                     </div>
                                 </div>
+                                <p className="text-sm text-violet-700 mb-3">
+                                    Add information that applies to all photos. You can override these for individual photos below.
+                                </p>
                             </div>
                         )}
 
@@ -282,14 +424,14 @@ export default function UploadComponent() {
                                 <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
                                     <div className="flex items-center">
                                         <FileText size={16} className="mr-2" />
-                                        Description
+                                        {selectedFiles.length > 1 ? 'Shared Description' : 'Description'}
                                     </div>
                                 </label>
                                 <textarea
                                     id="description"
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
-                                    placeholder="Add a description for your photos..."
+                                    placeholder={selectedFiles.length > 1 ? "Add a description for all photos..." : "Add a description..."}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                                     rows={3}
                                 />
@@ -300,7 +442,7 @@ export default function UploadComponent() {
                                 <label htmlFor="tags" className="block text-sm font-medium text-gray-700 mb-1">
                                     <div className="flex items-center">
                                         <Tag size={16} className="mr-2" />
-                                        Tags
+                                        {selectedFiles.length > 1 ? 'Shared Tags' : 'Tags'}
                                     </div>
                                 </label>
                                 <div className="flex">
@@ -352,11 +494,117 @@ export default function UploadComponent() {
                             </div>
                         </div>
 
+                        {/* Image Previews */}
+                        {previews.length > 0 && (
+                            <div className="mb-6">
+                                <div className="flex items-center justify-between mb-3">
+                                    <h2 className="text-sm font-medium text-gray-800">
+                                        Selected Images
+                                    </h2>
+                                    <span className="text-xs bg-violet-100 text-violet-700 py-1 px-2 rounded-full">
+                                        {previews.length} {previews.length === 1 ? 'file' : 'files'}
+                                    </span>
+                                </div>
+                                
+                                <div className="bg-gray-50 rounded-lg p-3">
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                        {previews.map((preview, index) => {
+                                            const fileId = Object.keys(fileMetadata)[index];
+                                            const meta = fileMetadata[fileId] || {};
+                                            
+                                            return (
+                                                <div key={index} className="relative group">
+                                                    <div className="aspect-square overflow-hidden rounded-md shadow-sm bg-white">
+                                                        <Image
+                                                            src={preview}
+                                                            alt={`Preview ${index + 1}`}
+                                                            width={100}
+                                                            height={100}
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation(); // Prevent form click
+                                                            removeFile(index);
+                                                        }}
+                                                        className="absolute -top-1 -right-1 bg-red-500 text-white p-1 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    >
+                                                        <X size={14} />
+                                                    </button>
+                                                    
+                                                    {/* File details */}
+                                                    <div className="mt-1 text-xs text-gray-500 truncate">
+                                                        {selectedFiles[index]?.name}
+                                                    </div>
+                                                    
+                                                    {/* Individual metadata toggle (only for multiple files) */}
+                                                    {selectedFiles.length > 1 && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                toggleUseShared(fileId);
+                                                            }}
+                                                            className={`mt-1 text-xs px-2 py-1 rounded ${
+                                                                meta.useShared 
+                                                                ? 'bg-violet-100 text-violet-700' 
+                                                                : 'bg-gray-100 text-gray-700'
+                                                            }`}
+                                                        >
+                                                            {meta.useShared ? 'Using shared info' : 'Custom info'}
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Upload Results */}
+                        {uploadResults.length > 0 && (
+                            <div className="mb-6">
+                                <h3 className="text-sm font-medium text-gray-800 mb-2">Upload Results</h3>
+                                <div className="bg-gray-50 rounded-lg p-3 max-h-40 overflow-y-auto">
+                                    {uploadResults.map((result, index) => (
+                                        <div key={index} className={`flex items-center p-2 text-sm ${
+                                            result.success ? 'text-green-700' : 'text-red-700'
+                                        }`}>
+                                            {result.success ? (
+                                                <Check size={16} className="mr-2 text-green-500" />
+                                            ) : (
+                                                <AlertCircle size={16} className="mr-2 text-red-500" />
+                                            )}
+                                            <div className="overflow-hidden">
+                                                <p className="truncate">{result.file}</p>
+                                                {!result.success && (
+                                                    <p className="text-xs text-red-500">{result.error}</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                
+                                {failedUploads.length > 0 && (
+                                    <button
+                                        type="button"
+                                        onClick={retryFailedUploads}
+                                        className="mt-2 text-sm text-violet-600 hover:text-violet-800 font-medium"
+                                    >
+                                        Retry failed uploads
+                                    </button>
+                                )}
+                            </div>
+                        )}
+
                         {/* Upload Progress */}
                         {isUploading && (
                             <div className="mb-6">
                                 <p className="text-sm font-medium text-gray-700 mb-2">
-                                    Uploading... {uploadProgress}%
+                                    Uploading... {uploadProgress}% ({currentFileIndex + 1} of {selectedFiles.length})
                                 </p>
                                 <div className="w-full bg-gray-200 rounded-full h-2.5">
                                     <div 
@@ -379,11 +627,8 @@ export default function UploadComponent() {
                         >
                             {isUploading ? (
                                 <div className="flex items-center">
-                                    <svg className="animate-spin h-5 w-5 mr-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    Uploading
+                                    <Loader className="animate-spin h-5 w-5 mr-3 text-white" />
+                                    Uploading {selectedFiles.length} {selectedFiles.length === 1 ? 'Photo' : 'Photos'}
                                 </div>
                             ) : (
                                 <>
@@ -396,5 +641,5 @@ export default function UploadComponent() {
                 </div>
             </div>
         </div>
-    )
+    );
 }

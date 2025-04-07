@@ -71,6 +71,16 @@ const Header = () => {
               >
                 Photos
               </Link>
+              <Link 
+                href="/slideshow" 
+                className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                  isActive('/images') 
+                    ? 'bg-violet-100 text-violet-700' 
+                    : 'text-gray-600 hover:text-violet-600 hover:bg-violet-50'
+                }`}
+              >
+                Slideshow
+              </Link>
             </nav>
           )}
         </div>
@@ -105,6 +115,10 @@ const Header = () => {
                   <Link href="/images" className="block px-4 py-2 text-sm text-gray-700 hover:bg-violet-50 flex items-center">
                     <ImageIcon className="mr-2" size={16} />
                     Photos
+                  </Link>
+                  <Link href="/slideshow" className="block px-4 py-2 text-sm text-gray-700 hover:bg-violet-50 flex items-center">
+                    <ImageIcon className="mr-2" size={16} />
+                    Slideshow
                   </Link>
                 </div>
                 <hr className="my-1 border-gray-200" />

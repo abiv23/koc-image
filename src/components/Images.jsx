@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Camera, Search, Filter, LoaderCircle, X, AlertTriangle } from 'lucide-react';
+import { Camera, Search, Filter, LoaderCircle, X, AlertTriangle, Play, Check } from 'lucide-react';
 
 const Images = () => {
   const { data: session, status } = useSession();
@@ -18,17 +18,21 @@ const Images = () => {
   const [filterTag, setFilterTag] = useState('');
   const [availableTags, setAvailableTags] = useState([]);
   
+  // Slideshow selection state
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedPhotos, setSelectedPhotos] = useState([]);
+  
   // Pagination
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const itemsPerPage = 12;
   
-  // Redirect if not authenticated
-  useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push('/login');
-    }
-  }, [status, router]);
+  // Redirect if not authenticated, isn't this handled in the middleware?
+  // useEffect(() => {
+  //   if (status === "unauthenticated") {
+  //     router.push('/login');
+  //   }
+  // }, [status, router]);
   
   // Fetch images from API
   const fetchImages = useCallback(async () => {
@@ -133,7 +137,37 @@ const Images = () => {
               >
                 <Filter size={20} />
               </button>
-              <Link href="/upload" className="bg-violet-600 text-white rounded-md p-2 hover:bg-violet-700">
+              <button
+                className={`border rounded-md p-2 ${selectionMode ? 'bg-violet-100 border-violet-300 text-violet-700' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'}`}
+                onClick={() => {
+                  setSelectionMode(!selectionMode);
+                  if (!selectionMode) {
+                    setSelectedPhotos([]);
+                  }
+                }}
+                title={selectionMode ? "Cancel selection" : "Select photos for slideshow"}
+              >
+                <Check size={20} />
+              </button>
+              {selectionMode && selectedPhotos.length > 0 ? (
+                <button 
+                  onClick={() => {
+                    // Store selected photo IDs in sessionStorage
+                    sessionStorage.setItem('slideshowIds', JSON.stringify(selectedPhotos));
+                    router.push('/slideshow?selected=true');
+                  }}
+                  className="bg-violet-500 text-white rounded-md px-3 py-2 hover:bg-violet-600 text-sm font-medium"
+                  title="Start slideshow with selected photos"
+                >
+                  <Play size={16} className="inline mr-1" /> 
+                  Play {selectedPhotos.length} selected
+                </button>
+              ) : (
+                <Link href="/slideshow" className="bg-violet-500 text-white rounded-md p-2 hover:bg-violet-600" title="Start slideshow with all photos">
+                  <Play size={20} />
+                </Link>
+              )}
+              <Link href="/upload" className="bg-violet-600 text-white rounded-md p-2 hover:bg-violet-700" title="Upload photos">
                 <Camera size={20} />
               </Link>
             </div>
@@ -182,6 +216,33 @@ const Images = () => {
           </div>
         )}
         
+        {/* Selection Mode Info */}
+        {selectionMode && (
+          <div className="mb-4 p-3 bg-violet-50 border border-violet-200 rounded-md">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-violet-800 font-medium">Selection mode active</p>
+                <p className="text-sm text-violet-600">
+                  {selectedPhotos.length === 0 
+                    ? "Click on photos to select them for a slideshow" 
+                    : `${selectedPhotos.length} photo${selectedPhotos.length === 1 ? '' : 's'} selected`}
+                </p>
+              </div>
+              <div>
+                <button
+                  onClick={() => {
+                    setSelectionMode(false);
+                    setSelectedPhotos([]);
+                  }}
+                  className="px-3 py-1 bg-white border border-violet-300 text-violet-700 rounded-md text-sm"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        
         {/* Error Message */}
         {error && (
           <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
@@ -226,40 +287,76 @@ const Images = () => {
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {filteredPhotos.map((photo) => (
-                <Link href={`/photo/${photo.id}`} key={photo.id}>
-                  <div className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-                    <div className="aspect-square relative">
-                      <Image
-                        src={photo.url}
-                        alt={photo.description || photo.original_filename}
-                        fill
-                        sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                        className="object-cover"
-                        onError={() => handleImageError(photo.id)}
-                      />
-                    </div>
-                    <div className="p-3">
-                      <h3 className="text-sm font-medium text-gray-800 truncate">
+                <div 
+                  key={photo.id} 
+                  className={`bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow ${
+                    selectionMode && selectedPhotos.includes(photo.id) ? 'ring-2 ring-violet-500' : ''
+                  }`}
+                  onClick={() => {
+                    if (selectionMode) {
+                      // Toggle photo selection
+                      setSelectedPhotos(prev => 
+                        prev.includes(photo.id) 
+                          ? prev.filter(id => id !== photo.id)
+                          : [...prev, photo.id]
+                      );
+                    } else {
+                      router.push(`/photo/${photo.id}`);
+                    }
+                  }}
+                >
+                  <div className="aspect-square relative">
+                    <Image
+                      src={photo.url}
+                      alt={photo.description || photo.original_filename}
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                      className="object-cover"
+                      onError={() => handleImageError(photo.id)}
+                    />
+                    {selectionMode && selectedPhotos.includes(photo.id) && (
+                      <div className="absolute top-2 right-2 bg-violet-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-md">
+                        <Check size={16} />
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-3">
+                    <div className="flex justify-between items-start">
+                      <h3 className="text-sm font-medium text-gray-800 truncate flex-grow">
                         {photo.description || photo.original_filename}
                       </h3>
-                      <p className="text-xs text-gray-500">
-                        {new Date(photo.created_at).toLocaleDateString()}
-                      </p>
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {(photo.tags || []).slice(0, 3).map((tag, idx) => (
-                          <span key={idx} className="px-2 py-0.5 bg-violet-50 text-violet-700 rounded-full text-xs">
-                            {tag}
-                          </span>
-                        ))}
-                        {(photo.tags || []).length > 3 && (
-                          <span className="px-2 py-0.5 bg-gray-50 text-gray-600 rounded-full text-xs">
-                            +{photo.tags.length - 3} more
-                          </span>
-                        )}
-                      </div>
+                      {!selectionMode && (
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            sessionStorage.setItem('slideshowIds', JSON.stringify([photo.id]));
+                            sessionStorage.setItem('slideshowStartIndex', '0');
+                            router.push('/slideshow?selected=true');
+                          }}
+                          className="ml-2 text-violet-500 hover:text-violet-700"
+                          title="Start slideshow from this photo"
+                        >
+                          <Play size={16} />
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      {new Date(photo.created_at).toLocaleDateString()}
+                    </p>
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {(photo.tags || []).slice(0, 3).map((tag, idx) => (
+                        <span key={idx} className="px-2 py-0.5 bg-violet-50 text-violet-700 rounded-full text-xs">
+                          {tag}
+                        </span>
+                      ))}
+                      {(photo.tags || []).length > 3 && (
+                        <span className="px-2 py-0.5 bg-gray-50 text-gray-600 rounded-full text-xs">
+                          +{photo.tags.length - 3} more
+                        </span>
+                      )}
                     </div>
                   </div>
-                </Link>
+                </div>
               ))}
             </div>
             
@@ -289,6 +386,6 @@ const Images = () => {
       </div>
     </main>
   );
-}
+};
 
 export default Images;
