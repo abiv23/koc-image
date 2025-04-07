@@ -34,7 +34,8 @@ export const config = {
         '/photo/:path*',
         '/account',
         '/images',
-        '/slideshow'
+        '/slideshow',
+        '/admin/:path*'
     ]
 };
 
