@@ -1,10 +1,12 @@
-import { initDb } from '../src/lib/db.mjs';
+import { initDb, updateUsersTableWithKnightNumberHash, updateUsersTableWithAdminFlag, setUserAsAdmin, query } from '../src/lib/db.mjs';
+import { initApprovedEmailsTable } from '../src/lib/emailValidation.mjs';
 import { mkdir } from 'fs/promises';
 import { join } from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import dotenv from 'dotenv';
 import { createRequire } from 'module';
+import bcrypt from 'bcryptjs';
 
 // Load environment variables from .env.local
 dotenv.config({ path: '.env.local' });
@@ -35,8 +37,53 @@ const require = createRequire(import.meta.url);
     }
     
     console.log('🔄 Connecting to database...');
+    
     // Initialize the database tables
     await initDb();
+    
+    // Update users table with knight_number_hash column if needed
+    await updateUsersTableWithKnightNumberHash();
+    
+    // Update users table with is_admin column if needed
+    await updateUsersTableWithAdminFlag();
+    
+    // Initialize approved emails table
+    await initApprovedEmailsTable();
+    
+    // Set specific admin user - abiv23@gmail.com
+    console.log('🔄 Setting abiv23@gmail.com as admin...');
+    
+    // Check if admin user exists
+    const adminEmail = 'abiv23@gmail.com';
+    const adminUserResult = await query('SELECT id FROM users WHERE email = $1', [adminEmail]);
+    
+    if (adminUserResult.rows.length > 0) {
+      // Admin user exists, set as admin
+      const adminUserId = adminUserResult.rows[0].id;
+      await setUserAsAdmin(adminUserId);
+      console.log(`✅ User ${adminEmail} set as admin`);
+    } else {
+      // Admin user doesn't exist, create it
+      console.log(`🔄 Admin user ${adminEmail} not found, creating...`);
+      
+      // Create admin user with secure password
+      const hashedPassword = await bcrypt.hash('adminPassword', 10); // You should use a secure password
+      
+      const insertResult = await query(
+        'INSERT INTO users (name, email, password, is_admin) VALUES ($1, $2, $3, $4) RETURNING id',
+        ['Admin User', adminEmail, hashedPassword, true]
+      );
+      
+      console.log(`✅ Created admin user: ${adminEmail} (password: adminPassword)`);
+    }
+    
+    // Remove admin privileges from test@example.com if it exists
+    const testUserResult = await query('SELECT id FROM users WHERE email = $1', ['test@example.com']);
+    if (testUserResult.rows.length > 0) {
+      const testUserId = testUserResult.rows[0].id;
+      await query('UPDATE users SET is_admin = FALSE WHERE id = $1', [testUserId]);
+      console.log('✅ Removed admin privileges from test@example.com');
+    }
     
     console.log('✅ Database initialization complete!');
     process.exit(0);

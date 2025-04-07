@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Camera, User, Upload, Image as ImageIcon, Settings, LogOut, ChevronDown, ShieldCheck } from 'lucide-react';
+import { Camera, User, Upload, Image as ImageIcon, Settings, LogOut, ChevronDown, Shield } from 'lucide-react';
 import { useSession, signOut } from 'next-auth/react';
 
 const Header = () => {
@@ -13,8 +13,6 @@ const Header = () => {
   const pathname = usePathname();
 
   const isLoggedIn = status === 'authenticated';
-  
-  // Function to check if the current user is an admin
   const isAdmin = session?.user?.isAdmin === true;
 
   // Handle clicking outside to close dropdown
@@ -51,7 +49,7 @@ const Header = () => {
             <span className="ml-2 font-medium text-gray-800">KoC PhotoShare</span>
           </Link>
           
-          {/* Navigation Links - Only show when logged in, now without Account */}
+          {/* Navigation Links - Only show when logged in */}
           {isLoggedIn && (
             <nav className="hidden md:flex ml-8 space-x-1">
               <Link 
@@ -77,13 +75,28 @@ const Header = () => {
               <Link 
                 href="/slideshow" 
                 className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                  isActive('/images') 
+                  isActive('/slideshow') 
                     ? 'bg-violet-100 text-violet-700' 
                     : 'text-gray-600 hover:text-violet-600 hover:bg-violet-50'
                 }`}
               >
                 Slideshow
               </Link>
+              
+              {/* Admin Link - Only visible to admins */}
+              {isAdmin && (
+                <Link 
+                  href="/admin/approved-emails" 
+                  className={`px-3 py-2 text-sm font-medium rounded-md transition-colors flex items-center ${
+                    pathname.startsWith('/admin') 
+                      ? 'bg-violet-100 text-violet-700' 
+                      : 'text-gray-600 hover:text-violet-600 hover:bg-violet-50'
+                  }`}
+                >
+                  <Shield size={16} className="mr-1" /> 
+                  Admin
+                </Link>
+              )}
             </nav>
           )}
         </div>
@@ -109,11 +122,11 @@ const Header = () => {
                   Account Settings
                 </Link>
                 
-                {/* Admin-only link */}
+                {/* Admin link in dropdown (mobile view) */}
                 {isAdmin && (
                   <Link href="/admin/approved-emails" className="block px-4 py-2 text-sm text-gray-700 hover:bg-violet-50 flex items-center">
-                    <ShieldCheck className="mr-2" size={16} />
-                    Manage Approved Emails
+                    <Shield className="mr-2" size={16} />
+                    Admin Panel
                   </Link>
                 )}
                 

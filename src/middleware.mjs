@@ -4,7 +4,7 @@ import { getToken } from 'next-auth/jwt';
 export async function middleware(request) {
   const path = request.nextUrl.pathname;
   
-  // Define public paths
+  // Define public paths - now including the homepage as public
   const isPublicPath = path === '/' || path === '/login' || path === '/register';
   
   // Define admin paths
@@ -15,27 +15,24 @@ export async function middleware(request) {
     secret: process.env.NEXTAUTH_SECRET,
   });
   
-  // Redirect logic for authentication
+  // Redirect logic
   if ((path === '/login' || path === '/register') && token) {
     return NextResponse.redirect(new URL('/', request.url));
   }
   
-  // Check for admin route access
-  if (isAdminPath) {
-    if (!token) {
-      return NextResponse.redirect(new URL('/login', request.url));
-    }
-    
-    // Check if user is an admin
-    const isAdmin = token.isAdmin === true;
-    if (!isAdmin) {
-      return NextResponse.redirect(new URL('/', request.url));
-    }
-  }
-  
-  // General authentication check
   if (!isPublicPath && !token) {
     return NextResponse.redirect(new URL('/login', request.url));
+  }
+  
+  // Admin route protection
+  if (isAdminPath) {
+    // Check if user is admin
+    const isAdmin = token?.isAdmin === true;
+    
+    if (!isAdmin) {
+      // Redirect non-admin users to homepage
+      return NextResponse.redirect(new URL('/', request.url));
+    }
   }
   
   return NextResponse.next();

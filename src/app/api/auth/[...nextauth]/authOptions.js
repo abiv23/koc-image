@@ -35,7 +35,7 @@ export const authOptions = {
           id: user.id.toString(),
           name: user.name,
           email: user.email,
-          isAdmin: user.is_admin || false
+          isAdmin: user.is_admin === true // Include the admin flag
         };
       }
     }),
@@ -47,8 +47,17 @@ export const authOptions = {
     strategy: "jwt",
   },
   callbacks: {
+    async jwt({ token, user }) {
+      // Add the isAdmin flag to the JWT token when first signing in
+      if (user) {
+        token.isAdmin = user.isAdmin || false;
+      }
+      return token;
+    },
     async session({ session, token }) {
+      // Add user ID and isAdmin flag to the session
       session.user.id = token.sub;
+      session.user.isAdmin = token.isAdmin || false;
       return session;
     },
   },

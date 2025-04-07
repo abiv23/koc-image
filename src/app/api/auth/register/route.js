@@ -1,8 +1,8 @@
 // src/app/api/auth/register/route.js
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { getUserByEmail, createUserWithKnightNumberHash, isKnightNumberHashUsed } from "@/lib/db";
-import { validateKnightNumber, hashKnightNumber } from "@/lib/knightValidation";
+import { getUserByEmail, createUser } from "@/lib/db.mjs";
+import { isEmailApproved, markEmailAsUsed } from "@/lib/emailValidation.mjs"; // Note the .mjs extension
 
 export async function POST(request) {
   try {
@@ -13,20 +13,17 @@ export async function POST(request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
     
-    // Knight number validation - first validate format and membership
-    const knightValidation = validateKnightNumber(knightNumber);
-    if (!knightValidation.isValid) {
-      return NextResponse.json({ error: knightValidation.reason }, { status: 400 });
+    // Email validation format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json({ error: "Please enter a valid email address" }, { status: 400 });
     }
     
-    // Get the knight number hash
-    const knightNumberHash = knightValidation.knightNumberHash;
-    
-    // Check if the knight number hash is already used in the database
-    const isHashUsed = await isKnightNumberHashUsed(knightNumberHash);
-    if (isHashUsed) {
+    // Check if email is in the approved list
+    const emailApproved = await isEmailApproved(email);
+    if (!emailApproved) {
       return NextResponse.json({ 
-        error: "This Knight number has already been registered. Each Knight number can only be used for one account." 
+        error: "This email is not in our approved list. Please contact your council administrator." 
       }, { status: 400 });
     }
     
@@ -39,10 +36,13 @@ export async function POST(request) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
     
-    // Create user with the knight number hash
-    const userId = await createUserWithKnightNumberHash(name, email, hashedPassword, knightNumberHash);
+    // Create user
+    const userId = await createUser(name, email, hashedPassword);
     
-    // Return the user (excluding password and knight number)
+    // Mark email as used
+    await markEmailAsUsed(email);
+    
+    // Return the user (excluding password)
     return NextResponse.json({
       user: {
         id: userId,
@@ -55,14 +55,6 @@ export async function POST(request) {
     
   } catch (error) {
     console.error("Registration error:", error);
-    
-    // Handle specific errors
-    if (error.message === 'Knight number is already registered') {
-      return NextResponse.json({ 
-        error: "This Knight number has already been registered. Each Knight number can only be used for one account." 
-      }, { status: 400 });
-    }
-    
     return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
   }
 }

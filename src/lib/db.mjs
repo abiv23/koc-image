@@ -1,7 +1,7 @@
 import pkg from 'pg';
 const { Pool } = pkg;
 import bcrypt from 'bcryptjs';
-import { hashEmail } from './emailValidation.mjs';
+import crypto from 'crypto';
 
 // Create a PostgreSQL connection pool
 let pool;
@@ -27,7 +27,7 @@ function getPool() {
 }
 
 // Helper function to run SQL queries - moved before any other functions that use it
-async function query(text, params) {
+export async function query(text, params) {
   const client = await getPool().connect();
   try {
     const result = await client.query(text, params);
@@ -35,6 +35,12 @@ async function query(text, params) {
   } finally {
     client.release();
   }
+}
+
+// Helper function to hash an email (moved from emailValidation to avoid circular dependency)
+export function hashEmail(email) {
+  const salt = process.env.EMAIL_SALT || 'koc_photo_sharing_salt';
+  return crypto.createHash('sha256').update(email.toLowerCase() + salt).digest('hex');
 }
 
 export async function initDb() {
@@ -47,20 +53,7 @@ export async function initDb() {
         email TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
         knight_number_hash TEXT UNIQUE,
-        is_admin BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-    
-    // Create approved_emails table for storing pre-approved emails
-    await query(`
-      CREATE TABLE IF NOT EXISTS approved_emails (
-        id SERIAL PRIMARY KEY,
-        email TEXT UNIQUE NOT NULL,
-        added_by INTEGER,
-        is_active BOOLEAN DEFAULT TRUE,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (added_by) REFERENCES users (id)
       )
     `);
     
@@ -109,8 +102,8 @@ export async function initDb() {
     if (existingUser.rows.length === 0) {
       const hashedPassword = await bcrypt.hash('password', 10);
       await query(
-        'INSERT INTO users (name, email, password, email_hash) VALUES ($1, $2, $3, $4)',
-        ['Test User', 'test@example.com', hashedPassword, hashEmail('test@example.com')]
+        'INSERT INTO users (name, email, password) VALUES ($1, $2, $3)',
+        ['Test User', 'test@example.com', hashedPassword]
       );
       console.log('✅ Created test user: test@example.com (password: password)');
     } else {
@@ -135,55 +128,64 @@ export async function initDb() {
   }
 }
 
-export async function updateUsersTableWithEmailHash() {
+export async function updateUsersTableWithKnightNumberHash() {
   try {
-    // Check if email_hash column exists
-    const checkEmailHashColumn = await query(`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name = 'users' AND column_name = 'email_hash'
-    `);
-    
-    // If email_hash column doesn't exist, add it
-    if (checkEmailHashColumn.rows.length === 0) {
-      await query(`
-        ALTER TABLE users 
-        ADD COLUMN email_hash TEXT UNIQUE
-      `);
-      console.log('✅ Added email_hash column to users table');
-    }
-    
-    // For backward compatibility, check if knight_number_hash column exists
-    const checkKnightNumberColumn = await query(`
+    // Check if knight_number_hash column exists
+    const checkColumnResult = await query(`
       SELECT column_name 
       FROM information_schema.columns 
       WHERE table_name = 'users' AND column_name = 'knight_number_hash'
     `);
     
-    // If knight_number_hash column doesn't exist, add it
-    if (checkKnightNumberColumn.rows.length === 0) {
+    // If column doesn't exist, add it
+    if (checkColumnResult.rows.length === 0) {
       await query(`
         ALTER TABLE users 
         ADD COLUMN knight_number_hash TEXT UNIQUE
       `);
-      console.log('✅ Added knight_number_hash column to users table (for backward compatibility)');
+      console.log('✅ Added knight_number_hash column to users table');
     }
-    
-    // Create or update approved_emails table
-    await query(`
-      CREATE TABLE IF NOT EXISTS approved_emails (
-        id SERIAL PRIMARY KEY,
-        email TEXT UNIQUE NOT NULL,
-        added_by INTEGER,
-        is_active BOOLEAN DEFAULT TRUE,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (added_by) REFERENCES users (id)
-      )
-    `);
-    console.log('✅ Ensured approved_emails table exists');
   } catch (error) {
     console.error('Error updating users table:', error);
     throw error;
+  }
+}
+
+export async function updateUsersTableWithAdminFlag() {
+  try {
+    // Check if is_admin column exists
+    const checkColumnResult = await query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'users' AND column_name = 'is_admin'
+    `);
+    
+    // If column doesn't exist, add it
+    if (checkColumnResult.rows.length === 0) {
+      await query(`
+        ALTER TABLE users 
+        ADD COLUMN is_admin BOOLEAN DEFAULT FALSE
+      `);
+      console.log('✅ Added is_admin column to users table');
+    }
+  } catch (error) {
+    console.error('Error updating users table with admin flag:', error);
+    throw error;
+  }
+}
+
+/**
+ * Set a user as admin
+ * @param {number} userId - The user ID to set as admin
+ * @returns {Promise<boolean>} Success status
+ */
+export async function setUserAsAdmin(userId) {
+  try {
+    await query('UPDATE users SET is_admin = TRUE WHERE id = $1', [userId]);
+    return true;
+  } catch (error) {
+    console.error('Error setting user as admin:', error);
+    return false;
   }
 }
 
@@ -204,85 +206,6 @@ export async function createUser(name, email, hashedPassword) {
     [name, email, hashedPassword]
   );
   return result.rows[0].id;
-}
-
-export async function createUserWithEmailHash(name, email, hashedPassword, emailHash) {
-  const client = await getPool().connect();
-  
-  try {
-    // Start a transaction
-    await client.query('BEGIN');
-    
-    // Double-check if the email or email hash is already in use (within transaction)
-    const checkEmailResult = await client.query(
-      'SELECT id FROM users WHERE email = $1 FOR UPDATE',
-      [email]
-    );
-    
-    if (checkEmailResult.rows.length > 0) {
-      // Another user is already using this email
-      await client.query('ROLLBACK');
-      throw new Error('Email is already registered');
-    }
-    
-    const checkHashResult = await client.query(
-      'SELECT id FROM users WHERE email_hash = $1 FOR UPDATE',
-      [emailHash]
-    );
-    
-    if (checkHashResult.rows.length > 0) {
-      // Another user is already using this email hash
-      await client.query('ROLLBACK');
-      throw new Error('Email is already registered');
-    }
-    
-    // Create user with email hash
-    const result = await client.query(
-      'INSERT INTO users (name, email, password, email_hash) VALUES ($1, $2, $3, $4) RETURNING id',
-      [name, email, hashedPassword, emailHash]
-    );
-    
-    // Update the approved_emails table to mark this email as used (if it exists)
-    await client.query(
-      'UPDATE approved_emails SET is_active = FALSE WHERE email = $1',
-      [email]
-    );
-    
-    // Commit the transaction
-    await client.query('COMMIT');
-    
-    return result.rows[0].id;
-  } catch (error) {
-    // Rollback in case of error
-    await client.query('ROLLBACK');
-    console.error('Error creating user:', error);
-    throw error;
-  } finally {
-    // Release the client back to the pool
-    client.release();
-  }
-}
-
-// Function to check if an email hash is already used
-export async function isEmailHashUsed(emailHash) {
-  try {
-    console.log(`Checking if email hash is used: ${emailHash}`);
-    
-    const result = await query(
-      'SELECT id FROM users WHERE email_hash = $1',
-      [emailHash]
-    );
-    
-    const isUsed = result.rows.length > 0;
-    console.log(`Email hash used: ${isUsed}`);
-    
-    return isUsed;
-  } catch (error) {
-    console.error('Error checking email hash:', error);
-    // If there's an error, assume it's not used to prevent blocking registration
-    // but log the error for investigation
-    return false;
-  }
 }
 
 // Legacy function kept for backward compatibility
@@ -591,4 +514,33 @@ export async function deleteImage(id) {
   await query('DELETE FROM images WHERE id = $1', [id]);
   
   return true;
+}
+
+/**
+ * Check if a user is an admin
+ * @param {number} userId - The user ID to check
+ * @returns {Promise<boolean>} Whether the user is an admin
+ */
+export async function isUserAdmin(userId) {
+  try {
+    const result = await query('SELECT is_admin FROM users WHERE id = $1', [userId]);
+    return result.rows.length > 0 && result.rows[0].is_admin === true;
+  } catch (error) {
+    console.error('Error checking if user is admin:', error);
+    return false;
+  }
+}
+
+/**
+ * Get a list of all admin users
+ * @returns {Promise<Array>} Array of admin users
+ */
+export async function getAdminUsers() {
+  try {
+    const result = await query('SELECT id, name, email FROM users WHERE is_admin = TRUE');
+    return result.rows;
+  } catch (error) {
+    console.error('Error getting admin users:', error);
+    return [];
+  }
 }

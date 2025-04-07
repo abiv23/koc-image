@@ -2,164 +2,121 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../../auth/[...nextauth]/authOptions";
-import { addApprovedEmail, removeApprovedEmail, getApprovedEmails, bulkAddApprovedEmails } from "@/lib/db.mjs";
+import { 
+  getApprovedEmails, 
+  addApprovedEmail, 
+  removeApprovedEmail,
+  isEmailApproved
+} from "@/lib/emailValidation.mjs"; // Note the .mjs extension
 
-
-// Helper to check if user is an admin
-async function isAdmin(userEmail) {
-    
-    // Check specific admin emails
-    const adminEmails = ['abiv23@gmail.com'];
-    if (adminEmails.includes(userEmail?.toLowerCase())) {
-        return true;
-    }
-
-    // Not an admin
-    return false;
-}
-
-// GET - List all approved emails
+// GET handler to fetch all approved emails
 export async function GET(request) {
   try {
-    // Check authentication
+    // Check authentication and admin status
     const session = await getServerSession(authOptions);
+    
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    // Check if user is admin
-    const isUserAdmin = await isAdmin(session.user.email);
-    if (!isUserAdmin) {
+    
+    if (!session.user.isAdmin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-
-    // Get the approved emails
-    const result = await getApprovedEmails();
     
-    if (!result.success) {
-      return NextResponse.json({ error: "Failed to get approved emails" }, { status: 500 });
-    }
+    // Get all approved emails
+    const approvedEmails = await getApprovedEmails();
     
-    return NextResponse.json({ emails: result.emails });
-    
+    return NextResponse.json({ approvedEmails });
   } catch (error) {
     console.error("Error fetching approved emails:", error);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to fetch approved emails" }, { status: 500 });
   }
 }
 
-// POST - Add a new approved email
+// POST handler to add a new approved email
 export async function POST(request) {
   try {
-    // Check authentication
+    // Check authentication and admin status
     const session = await getServerSession(authOptions);
+    
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    // Check if user is admin
-    const isUserAdmin = await isAdmin(session.user.email);
-    if (!isUserAdmin) {
+    
+    if (!session.user.isAdmin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-
+    
     const { email } = await request.json();
     
     if (!email) {
-      return NextResponse.json({ error: "Email is required" }, { status: 400 });
+      return NextResponse.json({ error: "Email address is required" }, { status: 400 });
     }
     
-    // Add the email
-    const result = await addApprovedEmail(email, parseInt(session.user.id));
+    // Validate the email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json({ error: "Invalid email address format" }, { status: 400 });
+    }
+    
+    // Check if already approved
+    const isAlreadyApproved = await isEmailApproved(email);
+    if (isAlreadyApproved) {
+      return NextResponse.json({ error: "Email is already approved" }, { status: 400 });
+    }
+    
+    // Add the email to approved list
+    const result = await addApprovedEmail(email);
     
     if (!result.success) {
-      return NextResponse.json({ error: result.message }, { status: 400 });
+      return NextResponse.json({ error: result.message || "Failed to add email" }, { status: 500 });
     }
     
     return NextResponse.json({ 
-      message: result.message,
+      success: true, 
+      message: `Email ${email} added successfully`,
       id: result.id
     });
-    
   } catch (error) {
     console.error("Error adding approved email:", error);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to add email to approved list" }, { status: 500 });
   }
 }
 
-// DELETE - Remove an approved email
+// DELETE handler to remove an approved email
 export async function DELETE(request) {
   try {
-    // Check authentication
+    // Check authentication and admin status
     const session = await getServerSession(authOptions);
+    
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    // Check if user is admin
-    const isUserAdmin = await isAdmin(session.user.email);
-    if (!isUserAdmin) {
+    
+    if (!session.user.isAdmin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-
+    
     const { searchParams } = new URL(request.url);
-    const email = searchParams.get("email");
+    const id = searchParams.get('id');
     
-    if (!email) {
-      return NextResponse.json({ error: "Email is required" }, { status: 400 });
+    if (!id) {
+      return NextResponse.json({ error: "Email ID is required" }, { status: 400 });
     }
     
-    // Remove the email
-    const result = await removeApprovedEmail(email);
+    // Remove the email from approved list
+    const result = await removeApprovedEmail(id);
     
     if (!result.success) {
-      return NextResponse.json({ error: result.message }, { status: 400 });
-    }
-    
-    return NextResponse.json({ message: result.message });
-    
-  } catch (error) {
-    console.error("Error removing approved email:", error);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
-  }
-}
-
-// PUT - Bulk add approved emails
-export async function PUT(request) {
-  try {
-    // Check authentication
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // Check if user is admin
-    const isUserAdmin = await isAdmin(session.user.email);
-    if (!isUserAdmin) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    const { emails } = await request.json();
-    
-    if (!emails || !Array.isArray(emails) || emails.length === 0) {
-      return NextResponse.json({ error: "Valid email array is required" }, { status: 400 });
-    }
-    
-    // Bulk add the emails
-    const result = await bulkAddApprovedEmails(emails, parseInt(session.user.id));
-    
-    if (!result.success) {
-      return NextResponse.json({ error: result.message }, { status: 400 });
+      return NextResponse.json({ error: result.message || "Failed to remove email" }, { status: 404 });
     }
     
     return NextResponse.json({ 
-      message: "Emails processed successfully",
-      results: result.results,
-      totalProcessed: result.totalProcessed
+      success: true, 
+      message: `Email removed successfully` 
     });
-    
   } catch (error) {
-    console.error("Error bulk adding approved emails:", error);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    console.error("Error removing approved email:", error);
+    return NextResponse.json({ error: "Failed to remove email from approved list" }, { status: 500 });
   }
 }
