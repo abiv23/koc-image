@@ -1,6 +1,7 @@
 import pkg from 'pg';
 const { Pool } = pkg;
 import bcrypt from 'bcryptjs';
+import { hashEmail } from './emailValidation.mjs';
 
 // Create a PostgreSQL connection pool
 let pool;
@@ -46,7 +47,20 @@ export async function initDb() {
         email TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
         knight_number_hash TEXT UNIQUE,
+        is_admin BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
+    // Create approved_emails table for storing pre-approved emails
+    await query(`
+      CREATE TABLE IF NOT EXISTS approved_emails (
+        id SERIAL PRIMARY KEY,
+        email TEXT UNIQUE NOT NULL,
+        added_by INTEGER,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (added_by) REFERENCES users (id)
       )
     `);
     
@@ -95,8 +109,8 @@ export async function initDb() {
     if (existingUser.rows.length === 0) {
       const hashedPassword = await bcrypt.hash('password', 10);
       await query(
-        'INSERT INTO users (name, email, password) VALUES ($1, $2, $3)',
-        ['Test User', 'test@example.com', hashedPassword]
+        'INSERT INTO users (name, email, password, email_hash) VALUES ($1, $2, $3, $4)',
+        ['Test User', 'test@example.com', hashedPassword, hashEmail('test@example.com')]
       );
       console.log('✅ Created test user: test@example.com (password: password)');
     } else {
@@ -121,23 +135,52 @@ export async function initDb() {
   }
 }
 
-export async function updateUsersTableWithKnightNumberHash() {
+export async function updateUsersTableWithEmailHash() {
   try {
-    // Check if knight_number_hash column exists
-    const checkColumnResult = await query(`
+    // Check if email_hash column exists
+    const checkEmailHashColumn = await query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'users' AND column_name = 'email_hash'
+    `);
+    
+    // If email_hash column doesn't exist, add it
+    if (checkEmailHashColumn.rows.length === 0) {
+      await query(`
+        ALTER TABLE users 
+        ADD COLUMN email_hash TEXT UNIQUE
+      `);
+      console.log('✅ Added email_hash column to users table');
+    }
+    
+    // For backward compatibility, check if knight_number_hash column exists
+    const checkKnightNumberColumn = await query(`
       SELECT column_name 
       FROM information_schema.columns 
       WHERE table_name = 'users' AND column_name = 'knight_number_hash'
     `);
     
-    // If column doesn't exist, add it
-    if (checkColumnResult.rows.length === 0) {
+    // If knight_number_hash column doesn't exist, add it
+    if (checkKnightNumberColumn.rows.length === 0) {
       await query(`
         ALTER TABLE users 
         ADD COLUMN knight_number_hash TEXT UNIQUE
       `);
-      console.log('✅ Added knight_number_hash column to users table');
+      console.log('✅ Added knight_number_hash column to users table (for backward compatibility)');
     }
+    
+    // Create or update approved_emails table
+    await query(`
+      CREATE TABLE IF NOT EXISTS approved_emails (
+        id SERIAL PRIMARY KEY,
+        email TEXT UNIQUE NOT NULL,
+        added_by INTEGER,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (added_by) REFERENCES users (id)
+      )
+    `);
+    console.log('✅ Ensured approved_emails table exists');
   } catch (error) {
     console.error('Error updating users table:', error);
     throw error;
@@ -163,29 +206,46 @@ export async function createUser(name, email, hashedPassword) {
   return result.rows[0].id;
 }
 
-export async function createUserWithKnightNumberHash(name, email, hashedPassword, knightNumberHash) {
+export async function createUserWithEmailHash(name, email, hashedPassword, emailHash) {
   const client = await getPool().connect();
   
   try {
     // Start a transaction
     await client.query('BEGIN');
     
-    // Double-check if the knight number hash is already in use (within transaction)
-    const checkResult = await client.query(
-      'SELECT id FROM users WHERE knight_number_hash = $1 FOR UPDATE',
-      [knightNumberHash]
+    // Double-check if the email or email hash is already in use (within transaction)
+    const checkEmailResult = await client.query(
+      'SELECT id FROM users WHERE email = $1 FOR UPDATE',
+      [email]
     );
     
-    if (checkResult.rows.length > 0) {
-      // Another user is already using this knight number
+    if (checkEmailResult.rows.length > 0) {
+      // Another user is already using this email
       await client.query('ROLLBACK');
-      throw new Error('Knight number is already registered');
+      throw new Error('Email is already registered');
     }
     
-    // Create user with knight number hash
+    const checkHashResult = await client.query(
+      'SELECT id FROM users WHERE email_hash = $1 FOR UPDATE',
+      [emailHash]
+    );
+    
+    if (checkHashResult.rows.length > 0) {
+      // Another user is already using this email hash
+      await client.query('ROLLBACK');
+      throw new Error('Email is already registered');
+    }
+    
+    // Create user with email hash
     const result = await client.query(
-      'INSERT INTO users (name, email, password, knight_number_hash) VALUES ($1, $2, $3, $4) RETURNING id',
-      [name, email, hashedPassword, knightNumberHash]
+      'INSERT INTO users (name, email, password, email_hash) VALUES ($1, $2, $3, $4) RETURNING id',
+      [name, email, hashedPassword, emailHash]
+    );
+    
+    // Update the approved_emails table to mark this email as used (if it exists)
+    await client.query(
+      'UPDATE approved_emails SET is_active = FALSE WHERE email = $1',
+      [email]
     );
     
     // Commit the transaction
@@ -203,26 +263,206 @@ export async function createUserWithKnightNumberHash(name, email, hashedPassword
   }
 }
 
-// Function to check if a knight number hash is already used
-export async function isKnightNumberHashUsed(knightNumberHash) {
+// Function to check if an email hash is already used
+export async function isEmailHashUsed(emailHash) {
   try {
-    // Log the hash we're checking for debugging
-    console.log(`Checking if knight number hash is used: ${knightNumberHash}`);
+    console.log(`Checking if email hash is used: ${emailHash}`);
     
     const result = await query(
-      'SELECT id FROM users WHERE knight_number_hash = $1',
-      [knightNumberHash]
+      'SELECT id FROM users WHERE email_hash = $1',
+      [emailHash]
     );
     
     const isUsed = result.rows.length > 0;
-    console.log(`Knight number hash used: ${isUsed}`);
+    console.log(`Email hash used: ${isUsed}`);
     
     return isUsed;
   } catch (error) {
-    console.error('Error checking knight number hash:', error);
+    console.error('Error checking email hash:', error);
     // If there's an error, assume it's not used to prevent blocking registration
     // but log the error for investigation
     return false;
+  }
+}
+
+// Legacy function kept for backward compatibility
+export async function isKnightNumberHashUsed(knightNumberHash) {
+  console.warn('isKnightNumberHashUsed is deprecated. Use isEmailHashUsed instead.');
+  return false;
+}
+
+// Get authorized emails from the database
+export async function getAuthorizedEmailsFromDb() {
+  try {
+    // Check if the approved_emails table exists
+    const tableExists = await query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'approved_emails'
+      )
+    `);
+    
+    if (!tableExists.rows[0].exists) {
+      console.warn('approved_emails table does not exist in the database');
+      return [];
+    }
+    
+    // Get all approved emails
+    const result = await query('SELECT email FROM approved_emails WHERE is_active = true');
+    return result.rows.map(row => row.email.toLowerCase().trim());
+  } catch (error) {
+    console.error('Error fetching authorized emails from database:', error);
+    return [];
+  }
+}
+
+// Keep the old function for backward compatibility
+export async function createUserWithKnightNumberHash(name, email, hashedPassword, knightNumberHash) {
+  console.warn('createUserWithKnightNumberHash is deprecated. Use createUserWithEmailHash instead.');
+  return createUserWithEmailHash(name, email, hashedPassword, hashEmail(email));
+}
+
+// Functions for managing approved emails
+export async function addApprovedEmail(email, addedBy = null) {
+  try {
+    // Normalize email
+    const normalizedEmail = email.toLowerCase().trim();
+    
+    // Check if email already exists
+    const existingEmail = await query(
+      'SELECT * FROM approved_emails WHERE email = $1',
+      [normalizedEmail]
+    );
+    
+    if (existingEmail.rows.length > 0) {
+      // If it exists but was inactive, reactivate it
+      if (!existingEmail.rows[0].is_active) {
+        await query(
+          'UPDATE approved_emails SET is_active = TRUE, added_by = $1 WHERE email = $2',
+          [addedBy, normalizedEmail]
+        );
+        return { success: true, message: 'Email reactivated', id: existingEmail.rows[0].id };
+      }
+      
+      // Already exists and active
+      return { success: false, message: 'Email already approved' };
+    }
+    
+    // Add new email
+    const result = await query(
+      'INSERT INTO approved_emails (email, added_by) VALUES ($1, $2) RETURNING id',
+      [normalizedEmail, addedBy]
+    );
+    
+    return { success: true, message: 'Email approved', id: result.rows[0].id };
+  } catch (error) {
+    console.error('Error adding approved email:', error);
+    return { success: false, message: 'Database error' };
+  }
+}
+
+export async function removeApprovedEmail(email) {
+  try {
+    // Normalize email
+    const normalizedEmail = email.toLowerCase().trim();
+    
+    // Set as inactive rather than deleting
+    const result = await query(
+      'UPDATE approved_emails SET is_active = FALSE WHERE email = $1',
+      [normalizedEmail]
+    );
+    
+    if (result.rowCount === 0) {
+      return { success: false, message: 'Email not found' };
+    }
+    
+    return { success: true, message: 'Email removed from approved list' };
+  } catch (error) {
+    console.error('Error removing approved email:', error);
+    return { success: false, message: 'Database error' };
+  }
+}
+
+export async function getApprovedEmails() {
+  try {
+    const result = await query(
+      'SELECT email, created_at, added_by FROM approved_emails WHERE is_active = TRUE ORDER BY created_at DESC'
+    );
+    
+    return { success: true, emails: result.rows };
+  } catch (error) {
+    console.error('Error getting approved emails:', error);
+    return { success: false, emails: [] };
+  }
+}
+
+export async function bulkAddApprovedEmails(emails, addedBy = null) {
+  const client = await getPool().connect();
+  
+  try {
+    await client.query('BEGIN');
+    
+    // Normalize emails
+    const normalizedEmails = emails.map(email => email.toLowerCase().trim())
+      .filter(email => email && email.length > 0);
+    
+    // Track results
+    const results = {
+      added: 0,
+      reactivated: 0,
+      alreadyExists: 0,
+      failed: 0
+    };
+    
+    // Process each email
+    for (const email of normalizedEmails) {
+      try {
+        // Check if email already exists
+        const existingEmail = await client.query(
+          'SELECT * FROM approved_emails WHERE email = $1',
+          [email]
+        );
+        
+        if (existingEmail.rows.length > 0) {
+          // If it exists but was inactive, reactivate it
+          if (!existingEmail.rows[0].is_active) {
+            await client.query(
+              'UPDATE approved_emails SET is_active = TRUE, added_by = $1 WHERE email = $2',
+              [addedBy, email]
+            );
+            results.reactivated++;
+          } else {
+            // Already exists and active
+            results.alreadyExists++;
+          }
+        } else {
+          // Add new email
+          await client.query(
+            'INSERT INTO approved_emails (email, added_by) VALUES ($1, $2)',
+            [email, addedBy]
+          );
+          results.added++;
+        }
+      } catch (error) {
+        console.error(`Error processing email ${email}:`, error);
+        results.failed++;
+      }
+    }
+    
+    await client.query('COMMIT');
+    
+    return { 
+      success: true, 
+      results,
+      totalProcessed: normalizedEmails.length
+    };
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error in bulk adding approved emails:', error);
+    return { success: false, message: 'Database error' };
+  } finally {
+    client.release();
   }
 }
 

@@ -3,7 +3,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Eye, EyeOff, ArrowRight, Shield } from 'lucide-react';
+import { Eye, EyeOff, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -12,7 +12,6 @@ const Register = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    knightNumber: '',
     password: '',
     confirmPassword: ''
   });
@@ -20,7 +19,7 @@ const Register = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [knightNumberError, setKnightNumberError] = useState('');
+  const [emailError, setEmailError] = useState('');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -29,23 +28,22 @@ const Register = () => {
       [name]: value
     }));
 
-    // Clear knight number error when user types
-    if (name === 'knightNumber') {
-      setKnightNumberError('');
+    // Clear email error when user types
+    if (name === 'email') {
+      setEmailError('');
     }
   };
 
-  // Validate Knight number format
-  const validateKnightNumber = (number) => {
-    // Knight numbers are usually 7 digits
-    const knightNumberRegex = /^\d{7}$/;
-    return knightNumberRegex.test(number);
+  // Basic email validation
+  const validateEmailFormat = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setKnightNumberError('');
+    setEmailError('');
     
     // Basic validation
     if (formData.password !== formData.confirmPassword) {
@@ -58,14 +56,14 @@ const Register = () => {
       return;
     }
 
-    // Validate Knight number
-    if (!formData.knightNumber.trim()) {
-      setKnightNumberError('Knight number is required');
+    // Validate email
+    if (!formData.email.trim()) {
+      setEmailError('Email is required');
       return;
     }
 
-    if (!validateKnightNumber(formData.knightNumber)) {
-      setKnightNumberError('Please enter a valid 7-digit Knight number');
+    if (!validateEmailFormat(formData.email)) {
+      setEmailError('Please enter a valid email address');
       return;
     }
     
@@ -78,8 +76,7 @@ const Register = () => {
         body: JSON.stringify({
           name: formData.name,
           email: formData.email,
-          password: formData.password,
-          knightNumber: formData.knightNumber
+          password: formData.password
         })
       });
       
@@ -93,7 +90,14 @@ const Register = () => {
       router.push('/login?registered=true');
     } catch (error) {
       console.error('Registration failed:', error);
-      setError(error.message || 'Failed to create account. Please try again.');
+      
+      // Check for specific error messages related to email
+      const message = error.message || 'Failed to create account. Please try again.';
+      if (message.toLowerCase().includes('email')) {
+        setEmailError(message);
+      } else {
+        setError(message);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -146,35 +150,15 @@ const Register = () => {
                   type="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                  className={`w-full px-3 py-2 border ${emailError ? 'border-red-300' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent`}
                   placeholder="your@email.com"
                   required
                 />
-              </div>
-
-              {/* Knight Number Input */}
-              <div>
-                <label htmlFor="knightNumber" className="block text-sm font-medium text-gray-700 mb-1">
-                  <div className="flex items-center">
-                    <Shield className="mr-2" size={16} />
-                    Knight Membership Number
-                  </div>
-                </label>
-                <input
-                  id="knightNumber"
-                  name="knightNumber"
-                  type="text"
-                  value={formData.knightNumber}
-                  onChange={handleChange}
-                  className={`w-full px-3 py-2 border ${knightNumberError ? 'border-red-300' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent`}
-                  placeholder="7-digit number (e.g., 5522805)"
-                  required
-                />
-                {knightNumberError && (
-                  <p className="mt-1 text-xs text-red-500">{knightNumberError}</p>
+                {emailError && (
+                  <p className="mt-1 text-xs text-red-500">{emailError}</p>
                 )}
                 <p className="mt-1 text-xs text-gray-500">
-                  Your Knight number can be found on your membership card or in the Knights of Columbus app.
+                  Registration is restricted to pre-approved email addresses. Please use the email address that was approved for your council.
                 </p>
               </div>
               

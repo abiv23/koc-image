@@ -34,7 +34,8 @@ export const authOptions = {
         return {
           id: user.id.toString(),
           name: user.name,
-          email: user.email
+          email: user.email,
+          isAdmin: user.is_admin || false
         };
       }
     }),

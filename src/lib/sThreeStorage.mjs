@@ -169,3 +169,100 @@ export function isS3Configured() {
   
   return isConfigured;
 }
+
+// Add these functions to your sThreeStorage.mjs file
+
+/**
+ * Gets the list of authorized emails from S3
+ * @returns {Promise<string[]>} List of authorized emails
+ */
+export async function getAuthorizedEmailsFromS3() {
+  // S3 file key for approved emails
+  const s3Key = process.env.APPROVED_EMAILS_S3_KEY || 'config/approved-emails.txt';
+  
+  console.log(`Fetching authorized emails from S3: ${s3Key}`);
+  
+  try {
+    // Create S3 client
+    const s3Client = getS3Client();
+    
+    // Get the file from S3
+    const params = {
+      Bucket: process.env.AWS_BUCKET_NAME,
+      Key: s3Key
+    };
+    
+    const command = new GetObjectCommand(params);
+    const response = await s3Client.send(command);
+    
+    // Read the response stream
+    const chunks = [];
+    for await (const chunk of response.Body) {
+      chunks.push(chunk);
+    }
+    
+    // Convert to string
+    const buffer = Buffer.concat(chunks);
+    const content = buffer.toString('utf8');
+    
+    // Parse the content (each email on a new line)
+    const emails = content
+      .split(/\r?\n/)
+      .map(email => email.trim().toLowerCase())
+      .filter(email => email && email.length > 0); // Remove empty lines
+    
+    console.log(`Found ${emails.length} authorized emails in S3`);
+    
+    return emails;
+  } catch (error) {
+    console.error('Error fetching authorized emails from S3:', error);
+    
+    // Return empty array in case of error
+    return [];
+  }
+}
+
+/**
+ * Updates the list of authorized emails in S3
+ * @param {string[]} emails - List of authorized emails
+ * @returns {Promise<boolean>} Success status
+ */
+export async function updateAuthorizedEmailsInS3(emails) {
+  // S3 file key for approved emails
+  const s3Key = process.env.APPROVED_EMAILS_S3_KEY || 'config/approved-emails.txt';
+  
+  console.log(`Updating authorized emails in S3: ${s3Key}`);
+  
+  try {
+    // Normalize emails
+    const normalizedEmails = [...new Set(
+      emails
+        .map(email => email.trim().toLowerCase())
+        .filter(email => email && email.length > 0)
+    )].sort();
+    
+    // Create content (each email on a new line)
+    const content = normalizedEmails.join('\n');
+    
+    // Create S3 client
+    const s3Client = getS3Client();
+    
+    // Upload to S3
+    const params = {
+      Bucket: process.env.AWS_BUCKET_NAME,
+      Key: s3Key,
+      Body: content,
+      ContentType: 'text/plain'
+    };
+    
+    const command = new PutObjectCommand(params);
+    await s3Client.send(command);
+    
+    console.log(`Successfully updated ${normalizedEmails.length} authorized emails in S3`);
+    
+    return true;
+  } catch (error) {
+    console.error('Error updating authorized emails in S3:', error);
+    return false;
+  }
+}
