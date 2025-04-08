@@ -19,6 +19,7 @@ const Footer = () => {
           
           <div className="text-blue-100 text-sm">
             <p>© {currentYear} Knights of Columbus. All rights reserved.</p>
+            <Link href="https://biviano.vercel.app/"><p>We made this &lt;3 Biv LLC</p></Link>
           </div>
         </div>
         
