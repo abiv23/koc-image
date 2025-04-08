@@ -28,14 +28,14 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 href="/upload"
-                className="bg-[#FFD100] text-[#003DA5] px-6 py-3 rounded-md hover:bg-[#FFFFFF] transition-colors font-medium inline-flex items-center drop-shadow-lg"
+                className="bg-[#FFF399] hover:bg-[#FFD100] text-[#003DA5]  hover:text-[#FFFFFF] px-6 py-3 rounded-md transition-colors font-medium inline-flex items-center drop-shadow-lg"
               >
                 <Upload className="mr-2" size={20} />
                 Upload Photos
               </Link>
               <Link
                 href="/images"
-                className="bg-white text-[#003DA5] px-6 py-3 rounded-md hover:bg-gray-100 transition-colors font-medium inline-flex items-center drop-shadow-lg"
+                className="bg-white text-[#003DA5] px-6 py-3 rounded-md hover:text-[#FFFFFF] hover:bg-[#003DA5] transition-colors font-medium inline-flex items-center drop-shadow-lg"
               >
                 <Camera className="mr-2" size={20} />
                 Browse Gallery
@@ -51,16 +51,18 @@ export default function Home() {
               Simple Photo Management for Our Council
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="bg-gray-50 p-6 rounded-lg shadow-sm border border-gray-200 relative overflow-hidden group hover:border-[#003DA5] transition-colors">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-[#003DA5]/5 rounded-bl-full"></div>
-                <div className="bg-[#003DA5] text-white w-12 h-12 rounded-full flex items-center justify-center mb-4 group-hover:bg-[#FFD100] group-hover:text-[#003DA5] transition-colors">
-                  <Upload size={20} />
+              <Link href="/upload">
+                <div className="bg-gray-50 p-6 rounded-lg shadow-sm border border-gray-200 relative overflow-hidden group hover:border-[#003DA5] transition-colors">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-[#003DA5]/5 rounded-bl-full"></div>
+                  <div className="bg-[#003DA5] text-white w-12 h-12 rounded-full flex items-center justify-center mb-4 group-hover:bg-[#FFD100] group-hover:text-[#003DA5] transition-colors">
+                    <Upload size={20} />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2 text-[#003DA5]">Easy Uploading</h3>
+                  <p className="text-gray-600">
+                    Quickly upload photos from your council events with our simple drag-and-drop interface.
+                  </p>
                 </div>
-                <h3 className="text-lg font-semibold mb-2 text-[#003DA5]">Easy Uploading</h3>
-                <p className="text-gray-600">
-                  Quickly upload photos from your council events with our simple drag-and-drop interface.
-                </p>
-              </div>
+              </Link>
               <div className="bg-gray-50 p-6 rounded-lg shadow-sm border border-gray-200 relative overflow-hidden group hover:border-[#003DA5] transition-colors">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-[#003DA5]/5 rounded-bl-full"></div>
                 <div className="bg-[#003DA5] text-white w-12 h-12 rounded-full flex items-center justify-center mb-4 group-hover:bg-[#FFD100] group-hover:text-[#003DA5] transition-colors">

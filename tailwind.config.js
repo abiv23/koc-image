@@ -13,7 +13,7 @@ module.exports = {
       colors: {
         kocAltBlue: {
           DEFAULT: '#152C4E'
-        }
+        },
         // Knights of Columbus colors
         kocBlue: {
           DEFAULT: '#003DA5',
