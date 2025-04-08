@@ -49,11 +49,11 @@ export default function LoginComponent() {
           <div className="w-full max-w-md">
             <div className="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
               {/* Header */}
-              <div className="bg-kocBlue py-6 px-6 text-center relative">
+              <div className="bg-[#003DA5] py-6 px-6 text-center relative">
                 {/* KoC Logo/emblem */}
                 <div className="flex justify-center mb-4">
                   <div className="w-16 h-16 bg-white rounded-full p-3 shadow-md">
-                    <div className="text-kocBlue flex items-center justify-center h-full">
+                    <div className="text-[#003DA5] flex items-center justify-center h-full">
                       <Shield className="w-8 h-8" />
                     </div>
                   </div>
@@ -62,12 +62,12 @@ export default function LoginComponent() {
                 <p className="text-blue-100 text-sm mt-1">Arvada Council #12395 Photo Sharing</p>
                 
                 {/* Decorative elements */}
-                <div className="absolute bottom-0 left-0 w-full h-1 bg-kocGold"></div>
+                <div className="absolute bottom-0 left-0 w-full h-1 bg-[#FFD100]"></div>
               </div>
               
               {/* Error Message */}
               {error && (
-                <div className="p-3 mx-6 mt-4 mb-0 bg-kocRed/10 text-kocRed text-sm rounded-md">
+                <div className="p-3 mx-6 mt-4 mb-0 bg-[#D80000]/10 text-[#D80000] text-sm rounded-md">
                   {error}
                 </div>
               )}
@@ -85,7 +85,7 @@ export default function LoginComponent() {
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-kocBlue focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#003DA5] focus:border-transparent"
                       placeholder="your@email.com"
                       required
                     />
@@ -102,7 +102,7 @@ export default function LoginComponent() {
                         type={showPassword ? "text" : "password"}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-kocBlue focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#003DA5] focus:border-transparent"
                         placeholder="••••••••"
                         required
                       />
@@ -124,13 +124,13 @@ export default function LoginComponent() {
                         type="checkbox"
                         checked={rememberMe}
                         onChange={() => setRememberMe(!rememberMe)}
-                        className="h-4 w-4 text-kocBlue focus:ring-kocBlue border-gray-300 rounded"
+                        className="h-4 w-4 text-[#003DA5] focus:ring-[#003DA5] border-gray-300 rounded"
                       />
                       <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
                         Remember me
                       </label>
                     </div>
-                    <Link href="/forgot-password" className="text-sm text-kocBlue hover:text-kocBlue-600">
+                    <Link href="/forgot-password" className="text-sm text-[#003DA5] hover:text-[#002966]">
                       Forgot password?
                     </Link>
                   </div>
@@ -139,7 +139,7 @@ export default function LoginComponent() {
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full bg-kocBlue text-white py-2 px-4 rounded-md hover:bg-kocBlue-800 focus:outline-none focus:ring-2 focus:ring-kocBlue focus:ring-offset-2 transition-colors flex items-center justify-center"
+                    className="w-full bg-[#003DA5] text-white py-2 px-4 rounded-md hover:bg-[#002966] focus:outline-none focus:ring-2 focus:ring-[#003DA5] focus:ring-offset-2 transition-colors flex items-center justify-center"
                   >
                     {isLoading ? (
                       <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -158,7 +158,7 @@ export default function LoginComponent() {
               {/* Footer */}
               <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 text-sm text-center">
                 Don't have an account?{' '}
-                <Link href="/register" className="text-kocBlue hover:text-kocBlue-700 font-medium">
+                <Link href="/register" className="text-[#003DA5] hover:text-[#002966] font-medium">
                   Sign up
                 </Link>
               </div>

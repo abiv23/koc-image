@@ -108,9 +108,9 @@ const Register = () => {
       <div className="w-full max-w-md">
         <div className="bg-white shadow-md rounded-lg overflow-hidden">
           {/* Header */}
-          <div className="bg-violet-600 py-4 px-6">
+          <div className="bg-[#003DA5] py-4 px-6">
             <h2 className="text-xl font-medium text-white">Create Account</h2>
-            <p className="text-violet-200 text-sm mt-1">Join Knights of Columbus PhotoShare</p>
+            <p className="text-blue-200 text-sm mt-1">Join Knights of Columbus PhotoShare</p>
           </div>
           
           {/* Form */}
@@ -133,7 +133,7 @@ const Register = () => {
                   type="text"
                   value={formData.name}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#003DA5] focus:border-transparent"
                   placeholder="John Doe"
                   required
                 />
@@ -150,7 +150,7 @@ const Register = () => {
                   type="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className={`w-full px-3 py-2 border ${emailError ? 'border-red-300' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent`}
+                  className={`w-full px-3 py-2 border ${emailError ? 'border-red-300' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-[#003DA5] focus:border-transparent`}
                   placeholder="your@email.com"
                   required
                 />
@@ -174,7 +174,7 @@ const Register = () => {
                     type={showPassword ? "text" : "password"}
                     value={formData.password}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#003DA5] focus:border-transparent"
                     placeholder="••••••••"
                     required
                   />
@@ -203,7 +203,7 @@ const Register = () => {
                     type={showConfirmPassword ? "text" : "password"}
                     value={formData.confirmPassword}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#003DA5] focus:border-transparent"
                     placeholder="••••••••"
                     required
                   />
@@ -223,15 +223,15 @@ const Register = () => {
                   id="terms"
                   type="checkbox"
                   required
-                  className="h-4 w-4 mt-1 text-violet-600 focus:ring-violet-500 border-gray-300 rounded"
+                  className="h-4 w-4 mt-1 text-[#003DA5] focus:ring-[#003DA5] border-gray-300 rounded"
                 />
                 <label htmlFor="terms" className="ml-2 block text-sm text-gray-700">
                   I agree to the{' '}
-                  <Link href="/terms" className="text-violet-600 hover:text-violet-500">
+                  <Link href="/terms" className="text-[#003DA5] hover:text-[#002966]">
                     Terms of Service
                   </Link>{' '}
                   and{' '}
-                  <Link href="/privacy" className="text-violet-600 hover:text-violet-500">
+                  <Link href="/privacy" className="text-[#003DA5] hover:text-[#002966]">
                     Privacy Policy
                   </Link>
                 </label>
@@ -241,7 +241,7 @@ const Register = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-violet-600 text-white py-2 px-4 rounded-md hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 transition-colors flex items-center justify-center"
+                className="w-full bg-[#003DA5] text-white py-2 px-4 rounded-md hover:bg-[#002966] focus:outline-none focus:ring-2 focus:ring-[#003DA5] focus:ring-offset-2 transition-colors flex items-center justify-center"
               >
                 {isLoading ? (
                   <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -260,7 +260,7 @@ const Register = () => {
           {/* Footer */}
           <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 text-sm text-center">
             Already have an account?{' '}
-            <Link href="/login" className="text-violet-600 hover:text-violet-500 font-medium">
+            <Link href="/login" className="text-[#003DA5] hover:text-[#002966] font-medium">
               Sign in
             </Link>
           </div>
