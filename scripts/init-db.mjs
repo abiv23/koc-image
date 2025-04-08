@@ -1,3 +1,5 @@
+// Add to your src/lib/db.mjs file's initDb function or create a separate function
+
 import { initDb, updateUsersTableWithKnightNumberHash, updateUsersTableWithAdminFlag, setUserAsAdmin, query } from '../src/lib/db.mjs';
 import { initApprovedEmailsTable } from '../src/lib/emailValidation.mjs';
 import { mkdir } from 'fs/promises';
@@ -17,6 +19,48 @@ const __dirname = dirname(__filename);
 
 // Create a require function
 const require = createRequire(import.meta.url);
+
+async function initSlideshowTables() {
+  try {
+    console.log('🔄 Initializing slideshow tables...');
+    
+    // Create slideshows table
+    await query(`
+      CREATE TABLE IF NOT EXISTS slideshows (
+        id SERIAL PRIMARY KEY,
+        title TEXT NOT NULL,
+        description TEXT,
+        user_id INTEGER NOT NULL,
+        is_public BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+      )
+    `);
+    
+    console.log('✅ Created slideshows table');
+    
+    // Create slideshow_photos junction table
+    await query(`
+      CREATE TABLE IF NOT EXISTS slideshow_photos (
+        slideshow_id INTEGER NOT NULL,
+        image_id INTEGER NOT NULL,
+        position INTEGER NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (slideshow_id, image_id),
+        FOREIGN KEY (slideshow_id) REFERENCES slideshows (id) ON DELETE CASCADE,
+        FOREIGN KEY (image_id) REFERENCES images (id) ON DELETE CASCADE
+      )
+    `);
+    
+    console.log('✅ Created slideshow_photos table');
+    
+    return true;
+  } catch (error) {
+    console.error('Error initializing slideshow tables:', error);
+    return false;
+  }
+}
 
 (async () => {
   console.log('🔄 Initializing database...');
@@ -49,6 +93,9 @@ const require = createRequire(import.meta.url);
     
     // Initialize approved emails table
     await initApprovedEmailsTable();
+    
+    // Initialize slideshow tables
+    await initSlideshowTables();
     
     // Set specific admin user - abiv23@gmail.com
     console.log('🔄 Setting abiv23@gmail.com as admin...');
