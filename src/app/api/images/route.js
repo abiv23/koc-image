@@ -1,8 +1,7 @@
-// src/app/api/images/route.js
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../auth/[...nextauth]/authOptions";
-import { getImages, getImageTags } from "@/lib/db";
+import { getImageTags, query } from "@/lib/db"; // Import query instead of using getImages
 import { isS3Configured, getSignedS3Url } from "@/lib/sThreeStorage";
 
 /**
@@ -39,9 +38,70 @@ export async function GET(request) {
     const limit = parseInt(searchParams.get("limit") || "50");
     const offset = parseInt(searchParams.get("offset") || "0");
     const tag = searchParams.get("tag");
+    const userOnly = searchParams.get("userOnly") === "true";
+    const sortOrder = searchParams.get("sortOrder") || "desc"; // "desc" (newest) or "asc" (oldest)
     
-    // Get images with pagination and tag filtering
-    const { images, total } = await getImages(limit, offset, tag);
+    const userId = parseInt(session.user.id);
+    
+    // Execute images query based on filters
+    let images = [];
+    let total = 0;
+    
+    if (tag) {
+      // With tag filter
+      const queryParams = userOnly ? [tag, userId] : [tag];
+      const queryText = `
+        SELECT i.* FROM images i
+        JOIN image_tags it ON i.id = it.image_id
+        JOIN tags t ON it.tag_id = t.id
+        WHERE t.name = $1
+        ${userOnly ? 'AND i.user_id = $2' : ''}
+        ORDER BY i.created_at ${sortOrder === "asc" ? "ASC" : "DESC"}
+        LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
+      `;
+      
+      const imagesResult = await query(queryText, [...queryParams, limit, offset]);
+      images = imagesResult.rows;
+      
+      const countText = `
+        SELECT COUNT(*) as count FROM images i
+        JOIN image_tags it ON i.id = it.image_id
+        JOIN tags t ON it.tag_id = t.id
+        WHERE t.name = $1
+        ${userOnly ? 'AND i.user_id = $2' : ''}
+      `;
+      
+      const countResult = await query(countText, queryParams);
+      total = parseInt(countResult.rows[0].count);
+    } else {
+      // Without tag filter
+      const queryParams = userOnly ? [userId] : [];
+      let queryText = `
+        SELECT * FROM images
+        ${userOnly ? 'WHERE user_id = $1' : ''}
+        ORDER BY created_at ${sortOrder === "asc" ? "ASC" : "DESC"}
+      `;
+      
+      // Add pagination parameters
+      queryText += userOnly 
+        ? ` LIMIT $2 OFFSET $3`
+        : ` LIMIT $1 OFFSET $2`;
+      
+      const finalParams = userOnly
+        ? [userId, limit, offset]
+        : [limit, offset];
+      
+      const imagesResult = await query(queryText, finalParams);
+      images = imagesResult.rows;
+      
+      const countText = `
+        SELECT COUNT(*) as count FROM images
+        ${userOnly ? 'WHERE user_id = $1' : ''}
+      `;
+      
+      const countResult = await query(countText, userOnly ? [userId] : []);
+      total = parseInt(countResult.rows[0].count);
+    }
     
     // Fetch tags for each image and generate signed URLs
     const imagesWithTags = await Promise.all(
