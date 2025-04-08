@@ -92,7 +92,34 @@ export async function initDb() {
         FOREIGN KEY (tag_id) REFERENCES tags (id) ON DELETE CASCADE
       )
     `);
-    
+
+    // Create slideshows table
+    await query(`
+      CREATE TABLE IF NOT EXISTS slideshows (
+        id SERIAL PRIMARY KEY,
+        title TEXT NOT NULL,
+        description TEXT,
+        user_id INTEGER NOT NULL,
+        is_public BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+      )
+    `);
+
+    // Create slideshow_photos junction table
+    await query(`
+      CREATE TABLE IF NOT EXISTS slideshow_photos (
+        slideshow_id INTEGER NOT NULL,
+        image_id INTEGER NOT NULL,
+        position INTEGER NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (slideshow_id, image_id),
+        FOREIGN KEY (slideshow_id) REFERENCES slideshows (id) ON DELETE CASCADE,
+        FOREIGN KEY (image_id) REFERENCES images (id) ON DELETE CASCADE
+      )
+    `);
+
     // Check if the default test user exists, if not create it
     const existingUser = await query(
       'SELECT * FROM users WHERE email = $1', 

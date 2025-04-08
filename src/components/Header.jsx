@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Camera, User, Upload, Image as ImageIcon, Settings, LogOut, ChevronDown, Shield } from 'lucide-react';
+import { Camera, User, Upload, Image as ImageIcon, Settings, LogOut, ChevronDown, Shield, Play } from 'lucide-react';
 import { useSession, signOut } from 'next-auth/react';
 import Image from 'next/image';
 
@@ -58,7 +58,7 @@ const Header = () => {
         </Link>
           
           {/* Navigation Links - Only show when logged in */}
-          {isLoggedIn && (
+          {/* {isLoggedIn && (
             <nav className="hidden md:flex ml-8 space-x-4">
               <Link 
                 href="/upload" 
@@ -98,23 +98,77 @@ const Header = () => {
                   <Camera className="mr-1.5 h-4 w-4" />
                   Slideshow
                 </span>
-              </Link>
-              
-              {isAdmin && (
-                <Link 
-                  href="/admin/approved-emails" 
-                  className={`px-3 py-2 text-sm font-medium rounded-md transition-colors flex items-center ${
-                    pathname.startsWith('/admin') 
-                      ? 'bg-[#FFD100]/90 text-[#003DA5] font-semibold' 
-                      : 'text-white hover:text-[#FFD100]'
-                  }`}
-                >
-                  <Shield className="mr-1.5 h-4 w-4" /> 
-                  Admin
-                </Link>
+              </Link> */}
+              {isLoggedIn && (
+                <nav className="hidden md:flex ml-8 space-x-4">
+                  <Link 
+                    href="/upload" 
+                    className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                      isActive('/upload') 
+                        ? 'bg-white/20 text-[#FFD100] font-semibold' 
+                        : 'text-white hover:text-[#FFD100]'
+                    }`}
+                  >
+                    <span className="flex items-center">
+                      <Upload className="mr-1.5 h-4 w-4" />
+                      Upload
+                    </span>
+                  </Link>
+                  <Link 
+                    href="/images" 
+                    className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                      isActive('/images') 
+                        ? 'bg-white/20 text-[#FFD100] font-semibold' 
+                        : 'text-white hover:text-[#FFD100]'
+                    }`}
+                  >
+                    <span className="flex items-center">
+                      <ImageIcon className="mr-1.5 h-4 w-4" />
+                      Photos
+                    </span>
+                  </Link>
+                  <Link 
+                    href="/slideshows" 
+                    className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                      isActive('/slideshows') 
+                        ? 'bg-white/20 text-[#FFD100] font-semibold' 
+                        : 'text-white hover:text-[#FFD100]'
+                    }`}
+                  >
+                    <span className="flex items-center">
+                      <Play className="mr-1.5 h-4 w-4" />
+                      Slideshows
+                    </span>
+                  </Link>
+                  <Link 
+                    href="/slideshow" 
+                    className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                      isActive('/slideshow') 
+                        ? 'bg-white/20 text-[#FFD100] font-semibold' 
+                        : 'text-white hover:text-[#FFD100]'
+                    }`}
+                  >
+                    <span className="flex items-center">
+                      <Camera className="mr-1.5 h-4 w-4" />
+                      Slideshow
+                    </span>
+                  </Link>
+                  
+                  {isAdmin && (
+                    <Link 
+                      href="/admin/approved-emails" 
+                      className={`px-3 py-2 text-sm font-medium rounded-md transition-colors flex items-center ${
+                        pathname.startsWith('/admin') 
+                          ? 'bg-[#FFD100]/90 text-[#003DA5] font-semibold' 
+                          : 'text-white hover:text-[#FFD100]'
+                      }`}
+                    >
+                      <Shield className="mr-1.5 h-4 w-4" /> 
+                      Admin
+                    </Link>
+                  )}
+                </nav>
               )}
-            </nav>
-          )}
         </div>
         
         {isLoggedIn ? (

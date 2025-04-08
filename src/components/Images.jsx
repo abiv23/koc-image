@@ -5,7 +5,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Camera, Search, Filter, LoaderCircle, X, Play, Check, User, ArrowUp, ArrowDown } from 'lucide-react';
+import { Camera, Search, Filter, LoaderCircle, X, Play, Check, User, ArrowUp, ArrowDown, Save } from 'lucide-react';
+
+import SlideshowCreationModal from './SlideshowCreationModal'
 
 const Images = () => {
   const { data: session, status } = useSession();
@@ -25,6 +27,7 @@ const Images = () => {
   // Slideshow selection state
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedPhotos, setSelectedPhotos] = useState([]);
+  const [showSlideshowModal, setShowSlideshowModal] = useState(false);
   
   // Pagination
   const [page, setPage] = useState(0);
@@ -161,23 +164,39 @@ const Images = () => {
               >
                 <Check size={20} />
               </button>
-              {selectionMode && selectedPhotos.length > 0 ? (
-                <button 
-                  onClick={() => {
-                    // Store selected photo IDs in sessionStorage
-                    sessionStorage.setItem('slideshowIds', JSON.stringify(selectedPhotos));
-                    router.push('/slideshow?selected=true');
+              {selectionMode && selectedPhotos.length > 0 && (
+                <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-white rounded-lg shadow-lg p-4 z-20 flex gap-3">
+                  <button 
+                    onClick={() => {
+                      sessionStorage.setItem('slideshowIds', JSON.stringify(selectedPhotos));
+                      router.push('/slideshow?selected=true');
+                    }}
+                    className="bg-[#003DA5] text-white rounded-md px-4 py-2 hover:bg-[#002966] text-sm font-medium"
+                  >
+                    <Play size={16} className="inline mr-1" /> 
+                    Play {selectedPhotos.length} selected
+                  </button>
+                  
+                  <button 
+                    onClick={() => {
+                      setShowSlideshowModal(true);
+                    }}
+                    className="bg-[#003DA5] text-white rounded-md px-4 py-2 hover:bg-[#002966] text-sm font-medium"
+                  >
+                    <Save size={16} className="inline mr-1" /> 
+                    Save as Slideshow
+                  </button>
+                </div>
+              )}
+              {/* Slideshow Creation Modal */}
+              {showSlideshowModal && (
+                <SlideshowCreationModal 
+                  selectedPhotos={selectedPhotos}
+                  onClose={() => setShowSlideshowModal(false)}
+                  onSuccess={(slideshowId) => {
+                    router.push(`/slideshow/${slideshowId}`);
                   }}
-                  className="bg-[#003DA5] text-white rounded-md px-3 py-2 hover:bg-[#002966] text-sm font-medium"
-                  title="Start slideshow with selected photos"
-                >
-                  <Play size={16} className="inline mr-1" /> 
-                  Play {selectedPhotos.length} selected
-                </button>
-              ) : (
-                <Link href="/slideshow" className="bg-[#003DA5] text-white rounded-md p-2 hover:bg-[#002966]" title="Start slideshow with all photos">
-                  <Play size={20} />
-                </Link>
+                />
               )}
               <Link href="/upload" className="bg-[#003DA5] text-white rounded-md p-2 hover:bg-[#002966]" title="Upload photos">
                 <Camera size={20} />
