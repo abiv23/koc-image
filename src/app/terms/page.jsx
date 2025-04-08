@@ -73,13 +73,6 @@ const Terms = () => {
                   We may terminate or suspend your access to the service immediately, without prior notice or liability, for any reason whatsoever, including without limitation if you breach the Terms.
                 </p>
               </section>
-
-              <section>
-                <h2 className="text-xl font-semibold text-gray-800 mb-4">8. Contact</h2>
-                <p className="text-gray-700">
-                  If you have any questions about these Terms, please contact us at <a href="mailto:council@kofc12395.org" className="text-[#003DA5] hover:underline">council@kofc12395.org</a>.
-                </p>
-              </section>
             </div>
             
             <div className="bg-gray-50 p-6 border-t border-gray-200">
