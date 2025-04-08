@@ -12,7 +12,7 @@ export default function Home() {
       <main className="min-h-screen">
         {/* Hero Section */}
         <section className="pt-20 pb-16 px-4 bg-[url('/images/koc-img.webp')] bg-cover bg-center bg-no-repeat relative min-h-[60vh] flex items-center">
-          <div className="absolute inset-0 bg-[#003DA5]/40"></div>
+          <div className="absolute inset-0 bg-[#000000]/60"></div>
           
           <div className="max-w-6xl mx-auto text-center relative z-10">
             <div className="bg-white w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
