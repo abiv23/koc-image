@@ -33,7 +33,6 @@ const Header = () => {
 
   const handleLogout = (e) => {
     e.preventDefault();
-    console.log("Logout clicked");
     signOut({ redirect: false }).then(() => {
       window.location.href = '/';
     });
@@ -44,52 +43,61 @@ const Header = () => {
   };
 
   return (
-    <header className="bg-[#003DA5] shadow-sm py-3 px-4 z-10 relative border-b-2 border-[#FFD100]">
+    <header className="bg-[#003DA5] shadow-md py-3 px-4 z-10 relative border-b-2 border-[#FFD100]">
       <div className="max-w-6xl mx-auto flex justify-between items-center">
         <div className="flex items-center">
-          <Link href="/" className="flex items-center">
-            {/* Using your logo at /images/logo.webp */}
-            <Image
-              src="/images/logo.webp"
-              alt="KoC PhotoShare Logo"
-              width={300}
-              height={300}
-              className="rounded-full"
-            />
-          </Link>
+        <Link href="/" className="flex items-center">
+          {/* Using your logo at /images/logo.webp */}
+          <Image
+            src="/images/logo.webp"
+            alt="KoC PhotoShare Logo"
+            width={300}
+            height={300}
+            className="rounded-full"
+          />
+        </Link>
           
           {/* Navigation Links - Only show when logged in */}
           {isLoggedIn && (
-            <nav className="hidden md:flex ml-8 space-x-1">
+            <nav className="hidden md:flex ml-8 space-x-4">
               <Link 
                 href="/upload" 
                 className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                   isActive('/upload') 
-                    ? 'bg-[#003DA5]/10 text-[#003DA5]' 
-                    : 'text-gray-600 hover:text-[#003DA5] hover:bg-[#003DA5]/5'
+                    ? 'bg-white/20 text-[#FFD100] font-semibold' 
+                    : 'text-white hover:text-[#FFD100]'
                 }`}
               >
-                Upload
+                <span className="flex items-center">
+                  <Upload className="mr-1.5 h-4 w-4" />
+                  Upload
+                </span>
               </Link>
               <Link 
                 href="/images" 
                 className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                   isActive('/images') 
-                    ? 'bg-[#003DA5]/10 text-[#003DA5]' 
-                    : 'text-gray-600 hover:text-[#003DA5] hover:bg-[#003DA5]/5'
+                    ? 'bg-white/20 text-[#FFD100] font-semibold' 
+                    : 'text-white hover:text-[#FFD100]'
                 }`}
               >
-                Photos
+                <span className="flex items-center">
+                  <ImageIcon className="mr-1.5 h-4 w-4" />
+                  Photos
+                </span>
               </Link>
               <Link 
                 href="/slideshow" 
                 className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                   isActive('/slideshow') 
-                    ? 'bg-[#003DA5]/10 text-[#003DA5]' 
-                    : 'text-gray-600 hover:text-[#003DA5] hover:bg-[#003DA5]/5'
+                    ? 'bg-white/20 text-[#FFD100] font-semibold' 
+                    : 'text-white hover:text-[#FFD100]'
                 }`}
               >
-                Slideshow
+                <span className="flex items-center">
+                  <Camera className="mr-1.5 h-4 w-4" />
+                  Slideshow
+                </span>
               </Link>
               
               {isAdmin && (
@@ -97,11 +105,11 @@ const Header = () => {
                   href="/admin/approved-emails" 
                   className={`px-3 py-2 text-sm font-medium rounded-md transition-colors flex items-center ${
                     pathname.startsWith('/admin') 
-                      ? 'bg-[#D80000]/10 text-[#D80000]' 
-                      : 'text-gray-600 hover:text-[#D80000] hover:bg-[#D80000]/5'
+                      ? 'bg-[#FFD100]/90 text-[#003DA5] font-semibold' 
+                      : 'text-white hover:text-[#FFD100]'
                   }`}
                 >
-                  <Shield size={16} className="mr-1" /> 
+                  <Shield className="mr-1.5 h-4 w-4" /> 
                   Admin
                 </Link>
               )}
@@ -113,10 +121,10 @@ const Header = () => {
           <div className="relative" ref={dropdownRef}>
             <button 
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center text-sm font-medium text-gray-700 hover:text-[#003DA5] focus:outline-none"
+              className="flex items-center text-sm font-medium text-white hover:text-[#FFD100] focus:outline-none"
             >
-              <div className="h-8 w-8 bg-[#003DA5]/10 rounded-full flex items-center justify-center mr-2">
-                <User className="text-[#003DA5]" size={16} />
+              <div className="h-8 w-8 bg-white/20 rounded-full flex items-center justify-center mr-2">
+                <User className="text-white" size={16} />
               </div>
               <span className="mr-1">{session?.user?.name || 'User'}</span>
               <ChevronDown size={16} className={`transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
