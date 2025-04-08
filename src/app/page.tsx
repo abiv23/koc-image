@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Camera, Upload, Users, Shield, ChevronRight } from 'lucide-react';
+import { Camera, Upload, Users, Shield } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
@@ -28,7 +28,7 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 href="/upload"
-                className="bg-[#FFD100] text-[#003DA5] px-6 py-3 rounded-md hover:bg-[#E6BD00] transition-colors font-medium inline-flex items-center drop-shadow-lg"
+                className="bg-[#FFD100] text-[#003DA5] px-6 py-3 rounded-md hover:bg-[#FFFFFF] transition-colors font-medium inline-flex items-center drop-shadow-lg"
               >
                 <Upload className="mr-2" size={20} />
                 Upload Photos
