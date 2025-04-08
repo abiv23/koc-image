@@ -317,14 +317,14 @@ export default function UploadComponent() {
             <div className="max-w-3xl mx-auto">
                 <div className="bg-white rounded-lg shadow-xl overflow-hidden">
                     {/* Header */}
-                    <div className="bg-violet-600 p-6">
+                    <div className="bg-[#003DA5] p-6">
                         <div className="flex items-center">
                             <div className="bg-white/20 rounded-full p-2 mr-4">
                                 <Camera className="text-white" size={24} />
                             </div>
                             <div>
                                 <h1 className="text-xl font-medium text-white">Upload Photos</h1>
-                                <p className="text-violet-200 text-sm mt-1">
+                                <p className="text-blue-200 text-sm mt-1">
                                     Share your KoC event photos with the community
                                 </p>
                             </div>
@@ -333,10 +333,10 @@ export default function UploadComponent() {
 
                     {/* Error message */}
                     {error && (
-                        <div className="p-4 bg-red-50 border-l-4 border-red-500">
+                        <div className="p-4 bg-[#D80000]/10 border-l-4 border-[#D80000]">
                             <div className="flex">
-                                <X className="text-red-500 mr-3" size={20} />
-                                <p className="text-red-700">{error}</p>
+                                <X className="text-[#D80000] mr-3" size={20} />
+                                <p className="text-[#D80000]">{error}</p>
                             </div>
                         </div>
                     )}
@@ -364,7 +364,7 @@ export default function UploadComponent() {
                         {/* Upload Area */}
                         <div 
                             className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors mb-6 ${
-                                isDragging ? 'border-violet-400 bg-violet-50' : 'border-gray-300 hover:border-violet-300'
+                                isDragging ? 'border-[#003DA5] bg-[#003DA5]/5' : 'border-gray-300 hover:border-[#003DA5]/50'
                             }`}
                             onDragOver={handleDragOver}
                             onDragLeave={handleDragLeave}
@@ -388,30 +388,30 @@ export default function UploadComponent() {
                             <p className="text-gray-500 text-sm">
                                 Supports JPG, PNG and GIF files
                             </p>
-                            <p className="text-violet-600 text-sm mt-2 font-medium">
+                            <p className="text-[#003DA5] text-sm mt-2 font-medium">
                                 Bulk upload supported - select multiple files at once!
                             </p>
                         </div>
 
                         {/* Shared Description and Tags for all photos */}
                         {selectedFiles.length > 1 && (
-                            <div className="mb-6 p-4 bg-violet-50 rounded-lg border border-violet-100">
+                            <div className="mb-6 p-4 bg-[#003DA5]/5 rounded-lg border border-[#003DA5]/10">
                                 <div className="flex items-center justify-between mb-3">
-                                    <h3 className="font-medium text-violet-800">Shared Information</h3>
+                                    <h3 className="font-medium text-[#003DA5]">Shared Information</h3>
                                     <div className="flex items-center">
                                         <input
                                             type="checkbox"
                                             id="use-shared"
                                             checked={useSharedDescriptionTags}
                                             onChange={() => setUseSharedDescriptionTags(!useSharedDescriptionTags)}
-                                            className="h-4 w-4 text-violet-600 focus:ring-violet-500 border-gray-300 rounded"
+                                            className="h-4 w-4 text-[#003DA5] focus:ring-[#003DA5] border-gray-300 rounded"
                                         />
-                                        <label htmlFor="use-shared" className="ml-2 text-sm text-violet-800">
+                                        <label htmlFor="use-shared" className="ml-2 text-sm text-[#003DA5]">
                                             Apply to all photos
                                         </label>
                                     </div>
                                 </div>
-                                <p className="text-sm text-violet-700 mb-3">
+                                <p className="text-sm text-[#003DA5]/80 mb-3">
                                     Add information that applies to all photos. You can override these for individual photos below.
                                 </p>
                             </div>
@@ -432,7 +432,7 @@ export default function UploadComponent() {
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
                                     placeholder={selectedFiles.length > 1 ? "Add a description for all photos..." : "Add a description..."}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#003DA5] focus:border-transparent"
                                     rows={3}
                                 />
                             </div>
@@ -453,12 +453,12 @@ export default function UploadComponent() {
                                         onChange={(e) => setCurrentTag(e.target.value)}
                                         onKeyDown={handleTagKeyDown}
                                         placeholder="Add tags (press Enter)"
-                                        className="flex-grow px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                                        className="flex-grow px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#003DA5] focus:border-transparent"
                                     />
                                     <button
                                         type="button"
                                         onClick={handleAddTag}
-                                        className="bg-violet-600 text-white px-4 py-2 rounded-r-md hover:bg-violet-700"
+                                        className="bg-[#003DA5] text-white px-4 py-2 rounded-r-md hover:bg-[#002966]"
                                     >
                                         Add
                                     </button>
@@ -471,13 +471,13 @@ export default function UploadComponent() {
                                             tag.trim() && (
                                                 <div 
                                                     key={index} 
-                                                    className="bg-violet-50 text-violet-700 rounded-full px-3 py-1 text-sm flex items-center"
+                                                    className="bg-[#003DA5]/10 text-[#003DA5] rounded-full px-3 py-1 text-sm flex items-center"
                                                 >
                                                     {tag.trim()}
                                                     <button
                                                         type="button"
                                                         onClick={() => removeTag(tag.trim())}
-                                                        className="ml-1 text-violet-500 hover:text-violet-700"
+                                                        className="ml-1 text-[#003DA5]/70 hover:text-[#003DA5]"
                                                     >
                                                         <X size={14} />
                                                     </button>
@@ -501,7 +501,7 @@ export default function UploadComponent() {
                                     <h2 className="text-sm font-medium text-gray-800">
                                         Selected Images
                                     </h2>
-                                    <span className="text-xs bg-violet-100 text-violet-700 py-1 px-2 rounded-full">
+                                    <span className="text-xs bg-[#003DA5]/10 text-[#003DA5] py-1 px-2 rounded-full">
                                         {previews.length} {previews.length === 1 ? 'file' : 'files'}
                                     </span>
                                 </div>
@@ -529,7 +529,7 @@ export default function UploadComponent() {
                                                             e.stopPropagation(); // Prevent form click
                                                             removeFile(index);
                                                         }}
-                                                        className="absolute -top-1 -right-1 bg-red-500 text-white p-1 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        className="absolute -top-1 -right-1 bg-[#D80000] text-white p-1 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
                                                     >
                                                         <X size={14} />
                                                     </button>
@@ -549,7 +549,7 @@ export default function UploadComponent() {
                                                             }}
                                                             className={`mt-1 text-xs px-2 py-1 rounded ${
                                                                 meta.useShared 
-                                                                ? 'bg-violet-100 text-violet-700' 
+                                                                ? 'bg-[#003DA5]/10 text-[#003DA5]' 
                                                                 : 'bg-gray-100 text-gray-700'
                                                             }`}
                                                         >
@@ -571,17 +571,17 @@ export default function UploadComponent() {
                                 <div className="bg-gray-50 rounded-lg p-3 max-h-40 overflow-y-auto">
                                     {uploadResults.map((result, index) => (
                                         <div key={index} className={`flex items-center p-2 text-sm ${
-                                            result.success ? 'text-green-700' : 'text-red-700'
+                                            result.success ? 'text-green-700' : 'text-[#D80000]'
                                         }`}>
                                             {result.success ? (
                                                 <Check size={16} className="mr-2 text-green-500" />
                                             ) : (
-                                                <AlertCircle size={16} className="mr-2 text-red-500" />
+                                                <AlertCircle size={16} className="mr-2 text-[#D80000]" />
                                             )}
                                             <div className="overflow-hidden">
                                                 <p className="truncate">{result.file}</p>
                                                 {!result.success && (
-                                                    <p className="text-xs text-red-500">{result.error}</p>
+                                                    <p className="text-xs text-[#D80000]">{result.error}</p>
                                                 )}
                                             </div>
                                         </div>
@@ -592,7 +592,7 @@ export default function UploadComponent() {
                                     <button
                                         type="button"
                                         onClick={retryFailedUploads}
-                                        className="mt-2 text-sm text-violet-600 hover:text-violet-800 font-medium"
+                                        className="mt-2 text-sm text-[#003DA5] hover:text-[#002966] font-medium"
                                     >
                                         Retry failed uploads
                                     </button>
@@ -608,7 +608,7 @@ export default function UploadComponent() {
                                 </p>
                                 <div className="w-full bg-gray-200 rounded-full h-2.5">
                                     <div 
-                                        className="bg-violet-600 h-2.5 rounded-full transition-all duration-300" 
+                                        className="bg-[#003DA5] h-2.5 rounded-full transition-all duration-300" 
                                         style={{ width: `${uploadProgress}%` }}
                                     />
                                 </div>
@@ -622,7 +622,7 @@ export default function UploadComponent() {
                             className={`w-full flex items-center justify-center py-3 rounded-md transition-colors ${
                                 isUploading || selectedFiles.length === 0
                                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                : 'bg-violet-600 text-white hover:bg-violet-700'
+                                : 'bg-[#003DA5] text-white hover:bg-[#002966]'
                             }`}
                         >
                             {isUploading ? (
