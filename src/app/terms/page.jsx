@@ -61,13 +61,6 @@ const Terms = () => {
               </section>
 
               <section className="mb-8">
-                <h2 className="text-xl font-semibold text-gray-800 mb-4">5. Privacy</h2>
-                <p className="text-gray-700 mb-3">
-                  Our collection and use of personal information in connection with the service is as described in our <Link href="/privacy-policy" className="text-[#003DA5] hover:underline">Privacy Policy</Link>.
-                </p>
-              </section>
-
-              <section className="mb-8">
                 <h2 className="text-xl font-semibold text-gray-800 mb-4">6. Modifications</h2>
                 <p className="text-gray-700 mb-3">
                   We reserve the right to modify or replace these Terms at any time. Your continued use of the service after any such changes constitutes your acceptance of the new Terms.

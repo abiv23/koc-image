@@ -229,10 +229,6 @@ const Register = () => {
                   I agree to the{' '}
                   <Link href="/terms" className="text-[#003DA5] hover:text-[#002966]">
                     Terms of Service
-                  </Link>{' '}
-                  and{' '}
-                  <Link href="/privacy" className="text-[#003DA5] hover:text-[#002966]">
-                    Privacy Policy
                   </Link>
                 </label>
               </div>
