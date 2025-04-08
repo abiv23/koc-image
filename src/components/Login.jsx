@@ -59,7 +59,7 @@ export default function LoginComponent() {
                   </div>
                 </div>
                 <h2 className="text-xl font-medium text-white">Knights of Columbus</h2>
-                <p className="text-blue-100 text-sm mt-1">Arvada Council #14577 Photo Sharing</p>
+                <p className="text-blue-100 text-sm mt-1">Arvada Council #12395 Photo Sharing</p>
                 
                 {/* Decorative elements */}
                 <div className="absolute bottom-0 left-0 w-full h-1 bg-kocGold"></div>
