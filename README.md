@@ -253,10 +253,6 @@ S3 permissions for your IAM user should include:
 4. Push to the branch: `git push origin feature/your-feature-name`
 5. Open a Pull Request
 
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
 ## Acknowledgements
 
 - Knights of Columbus for their community service
