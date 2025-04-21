@@ -146,7 +146,6 @@ This application includes an admin panel for managing approved emails that are a
 ### Admin Users
 
 - Admin users can access the admin panel at `/admin/approved-emails`
-- By default, `abiv23@gmail.com` is set as an admin
 - You can make other users admins by updating the database directly
 
 ### Approved Email Management
